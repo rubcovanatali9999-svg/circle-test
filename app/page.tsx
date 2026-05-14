@@ -331,7 +331,7 @@ export default function HomePage() {
                 try {
                   const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendTransaction", userToken: loginResult?.userToken, walletId: primaryWallet?.id, destinationAddress: sendAddress, amount: sendAmount, blockchain: sendChain }) });
                   const data = await res.json();
-                  if (!res.ok) { setSendMsg({ type: "err", text: data.message || "Failed to send" }); } else { setSendMsg({ type: "ok", text: "Transaction sent! TxHash: " + (data.txHash || data.id || "pending")?.slice(0,16) + "..." }); setSendAddress(""); setSendAmount(""); }
+                  if (!res.ok) { setSendMsg({ type: "err", text: data.message || "Failed to send" }); } else { setSendMsg({ type: "ok", text: "Transaction sent! TxHash: " + (data.txHash || data.id || "pending")?.slice(0,16) + "..." }); setSendAddress(""); setSendAmount(""); if (loginResult?.userToken) await loadWallets(loginResult.userToken); }
                 } catch { setSendMsg({ type: "err", text: "Network error" }); }
                 setSending(false);
               }} style={{ background: sending || !sendAddress || !sendAmount ? "#ffffff10" : "#00D395", color: sending || !sendAddress || !sendAmount ? "#444" : "#000", border: "none", borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
