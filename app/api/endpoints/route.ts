@@ -66,7 +66,7 @@ export async function POST(request: Request) {
             destinationAddress,
             amounts: [amount],
             feeLevel: "MEDIUM",
-            tokenId: "979869da-9115-57b3-ab78-b85de3b9ada5",
+            blockchain,
           }),
         });
         const data = await response.json();
