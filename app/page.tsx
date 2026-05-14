@@ -8,17 +8,8 @@ import type { W3SSdk } from "@circle-fin/w3s-pw-web-sdk";
 const appId = process.env.NEXT_PUBLIC_CIRCLE_APP_ID as string;
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string;
 
-type LoginResult = {
-  userToken: string;
-  encryptionKey: string;
-};
-
-type Wallet = {
-  id: string;
-  address: string;
-  blockchain: string;
-  [key: string]: unknown;
-};
+type LoginResult = { userToken: string; encryptionKey: string; };
+type Wallet = { id: string; address: string; blockchain: string; [key: string]: unknown; };
 
 export default function HomePage() {
   const sdkRef = useRef<W3SSdk | null>(null);
@@ -33,12 +24,12 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "history">("dashboard");
   const [sendAddress, setSendAddress] = useState("");
   const [sendAmount, setSendAmount] = useState("");
-  const [sendChain, setSendChain] = useState("ETH");
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState<{type:"ok"|"err", text:string}|null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +47,7 @@ export default function HomePage() {
           }
           setLoginResult({ userToken: result.userToken, encryptionKey: result.encryptionKey });
           setLoginError(null);
-          setStatus("Logged in with Google.");
+          setStatus("Logged in.");
         };
         const restoredAppId = (getCookie("appId") as string) || appId || "";
         const restoredGoogleClientId = (getCookie("google.clientId") as string) || googleClientId || "";
@@ -153,7 +144,7 @@ export default function HomePage() {
       setDeviceEncryptionKey(data.deviceEncryptionKey);
       setCookie("deviceToken", data.deviceToken);
       setCookie("deviceEncryptionKey", data.deviceEncryptionKey);
-      setStatus("Device token ready. Please sign in with Google.");
+      setStatus("Device token ready.");
     } catch { setStatus("Failed to create device token"); }
   };
 
@@ -190,7 +181,7 @@ export default function HomePage() {
         setStatus("Failed: " + (data.error || data.message)); return;
       }
       setChallengeId(data.challengeId);
-      setStatus("User initialized. Ready to create wallet.");
+      setStatus("Ready to create wallet.");
     } catch { setStatus("Failed to initialize user"); }
   };
 
@@ -229,102 +220,121 @@ export default function HomePage() {
     { label: "Create wallet", done: hasWallet, action: handleExecuteChallenge, disabled: !challengeId || hasWallet },
   ];
 
+  const nav = [
+    { id: "dashboard", label: "Dashboard", icon: "ti-layout-dashboard" },
+    { id: "send", label: "Send", icon: "ti-arrow-up" },
+    { id: "receive", label: "Receive", icon: "ti-arrow-down" },
+    { id: "history", label: "History", icon: "ti-list" },
+  ] as const;
+
+  const S = {
+    app: { display: "flex", minHeight: "100vh", background: "#f0eff5" } as React.CSSProperties,
+    sidebar: { width: 220, background: "#fff", borderRight: "1px solid #e5e3ed", display: "flex", flexDirection: "column" as const, padding: "24px 0" },
+    logo: { display: "flex", alignItems: "center", gap: 10, padding: "0 18px 28px" },
+    logoIcon: { width: 34, height: 34, borderRadius: "50%", background: "#1b1464", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14 },
+    logoText: { fontSize: 15, fontWeight: 800, color: "#1b1464", letterSpacing: "-0.3px" },
+    main: { flex: 1, padding: 32, display: "flex", flexDirection: "column" as const, gap: 20 },
+    balCard: { background: "#1b1464", borderRadius: 16, padding: 24, color: "#fff" },
+    balLabel: { fontSize: 11, fontWeight: 700, opacity: .6, textTransform: "uppercase" as const, letterSpacing: ".08em", marginBottom: 8 },
+    balAmount: { fontSize: 38, fontWeight: 800, letterSpacing: "-1.5px", marginBottom: 4 },
+    balUsd: { fontSize: 14, opacity: .6 },
+    balActions: { display: "flex", gap: 10, marginTop: 20 },
+    balBtn: { background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 },
+    balBtnPrimary: { background: "#fff", border: "none", color: "#1b1464", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 },
+    card: { background: "#fff", borderRadius: 14, border: "1px solid #e5e3ed", padding: 20 },
+    cardTitle: { fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 16 },
+    input: { width: "100%", background: "#f8f7fc", border: "1px solid #e5e3ed", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "#1a1a2e", outline: "none" },
+    sendBtn: { width: "100%", background: "#1b1464", color: "#fff", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 700, cursor: "pointer" },
+  };
+
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#0f0f13" }}>
-      <aside style={{ width: 220, background: "#16161d", borderRight: "0.5px solid #ffffff12", display: "flex", flexDirection: "column", padding: "24px 0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 20px 28px" }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#00D395", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 500, color: "#000" }}>C</div>
-          <span style={{ fontSize: 15, fontWeight: 500, color: "#fff" }}>CircleWallet</span>
+    <div style={S.app}>
+      <aside style={S.sidebar}>
+        <div style={S.logo}>
+          <div style={S.logoIcon}>H</div>
+          <span style={S.logoText}>HashCrew<br/>Arc Testnet</span>
         </div>
-        {(["dashboard", "send", "history"] as const).map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 20px", fontSize: 13, color: activeTab === tab ? "#fff" : "#666", background: activeTab === tab ? "#ffffff0a" : "transparent", borderRight: activeTab === tab ? "2px solid #00D395" : "2px solid transparent", border: "none", textAlign: "left", cursor: "pointer" }}>
-            {tab === "dashboard" && "Dashboard"}
-            {tab === "send" && "Send"}
-            {tab === "history" && "History"}
+        {nav.map((item) => (
+          <button key={item.id} onClick={() => setActiveTab(item.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 18px", fontSize: 13, fontWeight: 600, color: activeTab === item.id ? "#1b1464" : "#999", background: activeTab === item.id ? "#f0eff5" : "transparent", borderRight: activeTab === item.id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left", cursor: "pointer", width: "100%" }}>
+            <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>
+            {item.label}
           </button>
         ))}
-        <div style={{ marginTop: "auto", padding: "0 20px" }}>
-          <div style={{ fontSize: 11, color: "#444", marginBottom: 6 }}>Status</div>
-          <div style={{ fontSize: 12, color: "#666", lineHeight: 1.5 }}>{status}</div>
+        <div style={{ marginTop: "auto", padding: "16px 18px", borderTop: "1px solid #f0eff5" }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#bbb", marginBottom: 4, textTransform: "uppercase", letterSpacing: ".06em" }}>Status</div>
+          <div style={{ fontSize: 12, color: "#888", lineHeight: 1.5 }}>{status}</div>
         </div>
       </aside>
 
-      <main style={{ flex: 1, padding: 32, display: "flex", flexDirection: "column", gap: 20 }}>
+      <main style={S.main}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h1 style={{ fontSize: 20, fontWeight: 500, color: "#fff", textTransform: "capitalize" }}>{activeTab}</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a1a2e", letterSpacing: "-0.5px", textTransform: "capitalize" }}>{activeTab}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {isLoggedIn && !hasWallet && (
-              <button onClick={handleBack} style={{ background: "transparent", color: "#666", border: "0.5px solid #ffffff15", borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer" }}>← Back</button>
+              <button onClick={handleBack} style={{ background: "transparent", color: "#888", border: "1px solid #e5e3ed", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>← Back</button>
             )}
-            {loginResult && <div style={{ fontSize: 12, color: "#555", background: "#16161d", padding: "6px 12px", borderRadius: 20, border: "0.5px solid #ffffff10" }}>Connected</div>}
+            <span style={{ fontSize: 11, fontWeight: 700, background: "#e8e6f8", color: "#1b1464", padding: "5px 12px", borderRadius: 20, letterSpacing: ".04em" }}>ARC TESTNET</span>
           </div>
         </div>
 
         {!hasWallet && (
-          <div style={{ background: "#16161d", borderRadius: 12, border: "0.5px solid #ffffff10", padding: 24 }}>
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>Complete these steps to set up your wallet</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={S.card}>
+            <div style={{ ...S.cardTitle, marginBottom: 20 }}>Set up your wallet</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {steps.map((step, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: step.done ? "#00D395" : "#ffffff10", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: step.done ? "#000" : "#666", fontWeight: 500, flexShrink: 0 }}>{step.done ? "✓" : i + 1}</div>
-                  <span style={{ fontSize: 13, color: step.done ? "#666" : "#ccc", flex: 1, textDecoration: step.done ? "line-through" : "none" }}>{step.label}</span>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: step.done ? "#f8f7fc" : "#fff", borderRadius: 10, border: "1px solid #e5e3ed" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: step.done ? "#1b1464" : "#f0eff5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: step.done ? "#fff" : "#999", fontWeight: 700, flexShrink: 0 }}>{step.done ? "✓" : i + 1}</div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: step.done ? "#bbb" : "#1a1a2e", flex: 1, textDecoration: step.done ? "line-through" : "none" }}>{step.label}</span>
                   {!step.done && (
-                    <button onClick={step.action} disabled={step.disabled} style={{ background: step.disabled ? "#ffffff08" : "#00D395", color: step.disabled ? "#444" : "#000", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12, fontWeight: 500, cursor: step.disabled ? "not-allowed" : "pointer" }}>
+                    <button onClick={step.action} disabled={step.disabled} style={{ background: step.disabled ? "#f0eff5" : "#1b1464", color: step.disabled ? "#bbb" : "#fff", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12, fontWeight: 700, cursor: step.disabled ? "not-allowed" : "pointer" }}>
                       {i === 1 ? "Sign in" : "Start"}
                     </button>
                   )}
                 </div>
               ))}
             </div>
-            {loginError && <div style={{ marginTop: 12, fontSize: 12, color: "#ff6b6b", background: "#ff6b6b15", padding: "8px 12px", borderRadius: 8 }}>{loginError}</div>}
+            {loginError && <div style={{ marginTop: 12, fontSize: 12, color: "#c62828", background: "#fce8e8", padding: "10px 14px", borderRadius: 8, fontWeight: 500 }}>{loginError}</div>}
           </div>
         )}
 
         {hasWallet && activeTab === "dashboard" && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-              {[
-                { label: "USDC Balance", value: usdcBalance ? parseFloat(usdcBalance).toFixed(2) : "0.00", sub: "Main wallet", subColor: "#00D395" },
-                { label: "Blockchain", value: primaryWallet.blockchain, sub: "Network", subColor: "#888" },
-                { label: "Status", value: "Active", sub: "Wallet ready", subColor: "#00D395" },
-              ].map((m, i) => (
-                <div key={i} style={{ background: "#16161d", borderRadius: 12, border: "0.5px solid #ffffff10", padding: 16 }}>
-                  <div style={{ fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>{m.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 500, color: "#fff" }}>{m.value}</div>
-                  <div style={{ fontSize: 11, color: m.subColor, marginTop: 4 }}>{m.sub}</div>
-                </div>
-              ))}
+            <div style={S.balCard}>
+              <div style={S.balLabel}>Total Balance</div>
+              <div style={S.balAmount}>{usdcBalance ? parseFloat(usdcBalance).toFixed(2) : "0.00"} USDC</div>
+              <div style={S.balUsd}>≈ ${usdcBalance ? parseFloat(usdcBalance).toFixed(2) : "0.00"} USD</div>
+              <div style={S.balActions}>
+                <button style={S.balBtnPrimary} onClick={() => setActiveTab("send")}><i className="ti ti-arrow-up" aria-hidden="true"></i> Send</button>
+                <button style={S.balBtn} onClick={() => setActiveTab("receive")}><i className="ti ti-arrow-down" aria-hidden="true"></i> Receive</button>
+                <button style={S.balBtn} onClick={() => setActiveTab("history")}><i className="ti ti-list" aria-hidden="true"></i> History</button>
+              </div>
             </div>
-            <div style={{ background: "#16161d", borderRadius: 12, border: "0.5px solid #ffffff10", padding: 20 }}>
-              <div style={{ fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 12 }}>Wallet address</div>
-              <div style={{ fontFamily: "monospace", fontSize: 13, color: "#aaa", wordBreak: "break-all", marginBottom: 16 }}>{primaryWallet.address}</div>
-              <button onClick={() => navigator.clipboard.writeText(primaryWallet.address)} style={{ background: "#ffffff0a", color: "#ccc", border: "0.5px solid #ffffff15", borderRadius: 8, padding: "8px 16px", fontSize: 12 }}>Copy address</button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div style={S.card}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>Blockchain</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e" }}>{primaryWallet.blockchain}</div>
+                <div style={{ fontSize: 12, color: "#888", marginTop: 4, fontWeight: 500 }}>Network</div>
+              </div>
+              <div style={S.card}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>Wallet</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", fontFamily: "monospace" }}>{primaryWallet.address.slice(0,8)}...{primaryWallet.address.slice(-6)}</div>
+                <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ marginTop: 8, background: "transparent", border: "1px solid #e5e3ed", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: copied ? "#1b1464" : "#888", cursor: "pointer" }}>{copied ? "Copied!" : "Copy"}</button>
+              </div>
             </div>
           </>
         )}
 
         {hasWallet && activeTab === "send" && (
-          <div style={{ background: "#16161d", borderRadius: 12, border: "0.5px solid #ffffff10", padding: 24, maxWidth: 480 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: "#fff", marginBottom: 20 }}>Send USDC</div>
+          <div style={{ ...S.card, maxWidth: 500 }}>
+            <div style={S.cardTitle}>Send USDC</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 6 }}>Recipient address</label>
-                <input value={sendAddress} onChange={e => setSendAddress(e.target.value)} placeholder="0x..." style={{ width: "100%", background: "#0f0f13", border: "0.5px solid #ffffff15", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#fff", outline: "none" }} />
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Recipient address</label>
+                <input value={sendAddress} onChange={e => setSendAddress(e.target.value)} placeholder="0x..." style={S.input} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 6 }}>Amount (USDC)</label>
-                  <input value={sendAmount} onChange={e => setSendAmount(e.target.value)} type="number" placeholder="0.00" style={{ width: "100%", background: "#0f0f13", border: "0.5px solid #ffffff15", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#fff", outline: "none" }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 6 }}>Network</label>
-                  <select value={sendChain} onChange={e => setSendChain(e.target.value)} style={{ width: "100%", background: "#0f0f13", border: "0.5px solid #ffffff15", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#fff", outline: "none" }}>
-                    <option value="ETH">Ethereum</option>
-                    <option value="MATIC">Polygon</option>
-                    <option value="SOL">Solana</option>
-                    <option value="ARB">Arbitrum</option>
-                  </select>
-                </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Amount (USDC)</label>
+                <input value={sendAmount} onChange={e => setSendAmount(e.target.value)} type="number" placeholder="0.00" style={S.input} />
               </div>
               <button disabled={sending || !sendAddress || !sendAmount} onClick={async () => {
                 setSending(true); setSendMsg(null);
@@ -333,26 +343,38 @@ export default function HomePage() {
                   const data = await res.json();
                   if (!res.ok) { setSendMsg({ type: "err", text: data.message || "Failed to send" }); setSending(false); return; }
                   const sdk = sdkRef.current;
-                  if (!sdk || !data.challengeId) { setSendMsg({ type: "err", text: "No challenge ID returned" }); setSending(false); return; }
+                  if (!sdk || !data.challengeId) { setSendMsg({ type: "err", text: "No challenge ID" }); setSending(false); return; }
                   sdk.setAuthentication({ userToken: loginResult!.userToken, encryptionKey: loginResult!.encryptionKey });
                   sdk.execute(data.challengeId, async (error) => {
-                    if (error) { setSendMsg({ type: "err", text: "Transaction rejected: " + (error as any)?.message }); }
+                    if (error) { setSendMsg({ type: "err", text: "Rejected: " + (error as any)?.message }); }
                     else { setSendMsg({ type: "ok", text: "Transaction confirmed!" }); setSendAddress(""); setSendAmount(""); if (loginResult?.userToken) await loadWallets(loginResult.userToken); }
                     setSending(false);
                   });
                 } catch { setSendMsg({ type: "err", text: "Network error" }); setSending(false); }
-              }} style={{ background: sending || !sendAddress || !sendAmount ? "#ffffff10" : "#00D395", color: sending || !sendAddress || !sendAmount ? "#444" : "#000", border: "none", borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                {sending ? "Sending..." : "Send USDC"}
+              }} style={{ ...S.sendBtn, opacity: sending || !sendAddress || !sendAmount ? 0.5 : 1, cursor: sending || !sendAddress || !sendAmount ? "not-allowed" : "pointer" }}>
+                {sending ? "Confirming..." : "Send USDC"}
               </button>
-              {sendMsg && <div style={{ fontSize: 12, padding: "8px 12px", borderRadius: 8, background: sendMsg.type === "ok" ? "#00D39520" : "#ff6b6b15", color: sendMsg.type === "ok" ? "#00D395" : "#ff6b6b" }}>{sendMsg.text}</div>}
+              {sendMsg && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: sendMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: sendMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{sendMsg.text}</div>}
             </div>
           </div>
         )}
 
+        {hasWallet && activeTab === "receive" && (
+          <div style={{ ...S.card, maxWidth: 500 }}>
+            <div style={S.cardTitle}>Receive USDC</div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 16, fontWeight: 500 }}>Share your wallet address to receive USDC on Arc Testnet</div>
+            <div style={{ background: "#f8f7fc", border: "1px solid #e5e3ed", borderRadius: 10, padding: "14px 16px", fontFamily: "monospace", fontSize: 13, color: "#1a1a2e", wordBreak: "break-all", marginBottom: 14 }}>{primaryWallet.address}</div>
+            <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ ...S.sendBtn, background: copied ? "#2e7d32" : "#1b1464" }}>
+              {copied ? "Copied!" : "Copy address"}
+            </button>
+            <div style={{ marginTop: 16, fontSize: 12, color: "#bbb", fontWeight: 500 }}>Get free testnet USDC at <a href="https://faucet.circle.com" style={{ color: "#1b1464", fontWeight: 700 }}>faucet.circle.com</a></div>
+          </div>
+        )}
+
         {hasWallet && activeTab === "history" && (
-          <div style={{ background: "#16161d", borderRadius: 12, border: "0.5px solid #ffffff10", overflow: "hidden" }}>
-            <div style={{ padding: "16px 20px", borderBottom: "0.5px solid #ffffff08", fontSize: 14, fontWeight: 500, color: "#fff" }}>Transaction history</div>
-            <div style={{ padding: 32, textAlign: "center", color: "#555", fontSize: 13 }}>No transactions yet. Send USDC to get started.</div>
+          <div style={S.card}>
+            <div style={S.cardTitle}>Transaction history</div>
+            <div style={{ padding: "32px 0", textAlign: "center", color: "#bbb", fontSize: 14, fontWeight: 500 }}>No transactions yet. Send USDC to get started.</div>
           </div>
         )}
       </main>
