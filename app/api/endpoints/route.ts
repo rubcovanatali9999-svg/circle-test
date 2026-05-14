@@ -103,6 +103,16 @@ export async function POST(request: Request) {
         if (!response.ok) return NextResponse.json(data, { status: response.status });
         return NextResponse.json(data.data, { status: 200 });
       }
+      case "getTransactions": {
+        const { userToken, walletId } = params;
+        const response = await fetch(`${CIRCLE_BASE_URL}/v1/w3s/wallets/${walletId}/transactions?pageSize=20`, {
+          method: "GET",
+          headers: { accept: "application/json", Authorization: `Bearer ${CIRCLE_API_KEY}`, "X-User-Token": userToken },
+        });
+        const data = await response.json();
+        if (!response.ok) return NextResponse.json(data, { status: response.status });
+        return NextResponse.json(data.data, { status: 200 });
+      }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }

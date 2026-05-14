@@ -30,6 +30,8 @@ export default function HomePage() {
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState<{type:"ok"|"err", text:string}|null>(null);
   const [copied, setCopied] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [txLoading, setTxLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,6 +125,7 @@ export default function HomePage() {
       if (w.length > 0) {
         await loadUsdcBalance(userToken, w[0].id);
         setStatus(source === "afterCreate" ? "Wallet created!" : "Wallet loaded.");
+        void loadTransactions(userToken, w[0].id);
       } else {
         setStatus("No wallets found.");
       }
@@ -209,6 +212,20 @@ export default function HomePage() {
     setStatus("Ready");
   };
 
+  const loadTransactions = async (userToken: string, walletId: string) => {
+    setTxLoading(true);
+    try {
+      const response = await fetch("/api/endpoints", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "getTransactions", userToken, walletId }),
+      });
+      const data = await response.json();
+      setTransactions(data.transactions || []);
+    } catch { console.error("Failed to load transactions"); }
+    setTxLoading(false);
+  };
+
   const primaryWallet = wallets[0];
   const isLoggedIn = !!loginResult;
   const hasWallet = wallets.length > 0;
@@ -277,6 +294,9 @@ export default function HomePage() {
           </div>
         </div>
 
+        {!hasWallet && isLoggedIn && (
+          <button onClick={handleBack} style={{ background: "transparent", color: "#888", border: "1px solid #e5e3ed", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 8 }}>← Back</button>
+        )}
         {!hasWallet && (
           <div style={S.card}>
             <div style={{ ...S.cardTitle, marginBottom: 20 }}>Set up your wallet</div>
@@ -373,8 +393,41 @@ export default function HomePage() {
 
         {hasWallet && activeTab === "history" && (
           <div style={S.card}>
-            <div style={S.cardTitle}>Transaction history</div>
-            <div style={{ padding: "32px 0", textAlign: "center", color: "#bbb", fontSize: 14, fontWeight: 500 }}>No transactions yet. Send USDC to get started.</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={S.cardTitle}>Transaction history</div>
+              <button onClick={() => primaryWallet && loginResult && loadTransactions(loginResult.userToken, primaryWallet.id)} style={{ background: "transparent", border: "1px solid #e5e3ed", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#888", cursor: "pointer" }}>Refresh</button>
+            </div>
+            {txLoading ? (
+              <div style={{ padding: "32px 0", textAlign: "center", color: "#bbb", fontSize: 14 }}>Loading...</div>
+            ) : transactions.length === 0 ? (
+              <div style={{ padding: "32px 0", textAlign: "center", color: "#bbb", fontSize: 14, fontWeight: 500 }}>No transactions yet.</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                {transactions.map((tx: any, i: number) => {
+                  const isIn = tx.transactionType === "INBOUND";
+                  const amount = tx.amounts?.[0] || "0";
+                  const addr = isIn ? tx.sourceAddress : tx.destinationAddress;
+                  const date = tx.createDate ? new Date(tx.createDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+                  return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid #f0eff5" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: isIn ? "#e8f5e9" : "#fce8e8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: isIn ? "#2e7d32" : "#c62828" }}>
+                          <i className={isIn ? "ti ti-arrow-down" : "ti ti-arrow-up"} aria-hidden="true"></i>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>{isIn ? "Received" : "Sent"}</div>
+                          <div style={{ fontSize: 11, color: "#bbb", fontFamily: "monospace" }}>{addr ? addr.slice(0,8) + "..." + addr.slice(-4) : "—"}</div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: isIn ? "#2e7d32" : "#c62828" }}>{isIn ? "+" : "-"}{parseFloat(amount).toFixed(2)} USDC</div>
+                        <div style={{ fontSize: 11, color: "#bbb" }}>{date}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </main>
