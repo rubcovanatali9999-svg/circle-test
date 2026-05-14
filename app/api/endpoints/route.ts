@@ -66,7 +66,7 @@ export async function POST(request: Request) {
             destinationAddress,
             amounts: [amount],
             feeLevel: "MEDIUM",
-            tokenId: "5797fbd6-3795-519d-84ca-ec4c5f80c3b1",
+            tokenId: "979869da-9115-57b3-ab78-b85de3b9ada5",
           }),
         });
         const data = await response.json();
