@@ -79,6 +79,30 @@ export async function POST(request: Request) {
         if (!response.ok) return NextResponse.json(data, { status: response.status });
         return NextResponse.json(data.data, { status: 200 });
       }
+      case "getTransferChallenge": {
+        const { userToken, walletId, destinationAddress, amount } = params;
+        const balRes = await fetch(`${CIRCLE_BASE_URL}/v1/w3s/wallets/${walletId}/balances`, {
+          headers: { accept: "application/json", Authorization: `Bearer ${CIRCLE_API_KEY}`, "X-User-Token": userToken },
+        });
+        const balData = await balRes.json();
+        const tokenId = balData?.data?.tokenBalances?.[0]?.token?.id;
+        if (!tokenId) return NextResponse.json({ error: "No token found in wallet" }, { status: 400 });
+        const response = await fetch(`${CIRCLE_BASE_URL}/v1/w3s/user/transactions/transfer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${CIRCLE_API_KEY}`, "X-User-Token": userToken },
+          body: JSON.stringify({
+            idempotencyKey: crypto.randomUUID(),
+            walletId,
+            destinationAddress,
+            amounts: [amount],
+            feeLevel: "MEDIUM",
+            tokenId,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) return NextResponse.json(data, { status: response.status });
+        return NextResponse.json(data.data, { status: 200 });
+      }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }

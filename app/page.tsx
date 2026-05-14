@@ -329,11 +329,18 @@ export default function HomePage() {
               <button disabled={sending || !sendAddress || !sendAmount} onClick={async () => {
                 setSending(true); setSendMsg(null);
                 try {
-                  const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sendTransaction", userToken: loginResult?.userToken, walletId: primaryWallet?.id, destinationAddress: sendAddress, amount: sendAmount, blockchain: sendChain }) });
+                  const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "getTransferChallenge", userToken: loginResult?.userToken, walletId: primaryWallet?.id, destinationAddress: sendAddress, amount: sendAmount }) });
                   const data = await res.json();
-                  if (!res.ok) { setSendMsg({ type: "err", text: data.message || "Failed to send" }); } else { setSendMsg({ type: "ok", text: "Transaction sent! TxHash: " + (data.txHash || data.id || "pending")?.slice(0,16) + "..." }); setSendAddress(""); setSendAmount(""); if (loginResult?.userToken) await loadWallets(loginResult.userToken); }
-                } catch { setSendMsg({ type: "err", text: "Network error" }); }
-                setSending(false);
+                  if (!res.ok) { setSendMsg({ type: "err", text: data.message || "Failed to send" }); setSending(false); return; }
+                  const sdk = sdkRef.current;
+                  if (!sdk || !data.challengeId) { setSendMsg({ type: "err", text: "No challenge ID returned" }); setSending(false); return; }
+                  sdk.setAuthentication({ userToken: loginResult!.userToken, encryptionKey: loginResult!.encryptionKey });
+                  sdk.execute(data.challengeId, async (error) => {
+                    if (error) { setSendMsg({ type: "err", text: "Transaction rejected: " + (error as any)?.message }); }
+                    else { setSendMsg({ type: "ok", text: "Transaction confirmed!" }); setSendAddress(""); setSendAmount(""); if (loginResult?.userToken) await loadWallets(loginResult.userToken); }
+                    setSending(false);
+                  });
+                } catch { setSendMsg({ type: "err", text: "Network error" }); setSending(false); }
               }} style={{ background: sending || !sendAddress || !sendAmount ? "#ffffff10" : "#00D395", color: sending || !sendAddress || !sendAmount ? "#444" : "#000", border: "none", borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
                 {sending ? "Sending..." : "Send USDC"}
               </button>
