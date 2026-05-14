@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       }
       case "getTransactions": {
         const { userToken, walletId } = params;
-        const response = await fetch(`${CIRCLE_BASE_URL}/v1/w3s/wallets/${walletId}/transactions?pageSize=20`, {
+        const response = await fetch(`${CIRCLE_BASE_URL}/v1/w3s/transactions?walletIds=${walletId}&pageSize=20`, {
           method: "GET",
           headers: { accept: "application/json", Authorization: `Bearer ${CIRCLE_API_KEY}`, "X-User-Token": userToken },
         });
