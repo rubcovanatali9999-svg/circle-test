@@ -24,7 +24,8 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "achievements" | "learn" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "analytics" | "achievements" | "learn" | "history">("dashboard");
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<"7D"|"1M"|"ALL">("7D");
   const [eurcBalance, setEurcBalance] = useState<string>("20.00");
 
   useEffect(() => {
@@ -262,6 +263,35 @@ export default function HomePage() {
     setTxLoading(false);
   };
 
+  useEffect(() => {
+    if (activeTab !== "analytics") return;
+    const timer = setTimeout(() => {
+      const canvas = document.getElementById("analyticsChart") as HTMLCanvasElement;
+      if (!canvas) return;
+      const existing = (canvas as any)._chartInstance;
+      if (existing) existing.destroy();
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js";
+      script.onload = () => {
+        const Chart = (window as any).Chart;
+        const labels = { "7D": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], "1M": ["W1","W2","W3","W4"], "ALL": ["Jan","Feb","Mar","Apr","May"] };
+        const data = { "7D": [20,40,30,60,45,70,parseFloat(usdcBalance||"0")], "1M": [10,30,50,parseFloat(usdcBalance||"0")], "ALL": [0,10,30,50,parseFloat(usdcBalance||"0")] };
+        const instance = new Chart(canvas.getContext("2d"), {
+          type: "line",
+          data: {
+            labels: labels[analyticsPeriod],
+            datasets: [{ data: data[analyticsPeriod], borderColor: "#a855f7", backgroundColor: "rgba(168,85,247,0.12)", fill: true, tension: 0.4, pointBackgroundColor: "#a855f7", pointBorderColor: "#fff", pointBorderWidth: 2, pointRadius: 5 }]
+          },
+          options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { color: "#ffffff08" }, ticks: { color: "#ffffff30", font: { size: 11 } } }, y: { grid: { color: "#ffffff08" }, ticks: { color: "#ffffff30", font: { size: 11 } } } } }
+        });
+        (canvas as any)._chartInstance = instance;
+      };
+      if (!(window as any).Chart) document.head.appendChild(script);
+      else script.onload?.(new Event("load"));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [activeTab, analyticsPeriod, usdcBalance]);
+
   const primaryWallet = wallets[0];
   const isLoggedIn = !!loginResult;
   const hasWallet = wallets.length > 0;
@@ -279,6 +309,7 @@ export default function HomePage() {
     { id: "receive", label: "Receive", icon: "ti-arrow-down" },
     { id: "swap", label: "Swap", icon: "ti-arrows-right-left" },
     { id: "garden", label: "Garden", icon: "ti-plant" },
+    { id: "analytics", label: "Analytics", icon: "ti-chart-line" },
     { id: "achievements", label: "Achievements", icon: "ti-trophy" },
     { id: "learn", label: "Learn", icon: "ti-book" },
     { id: "history", label: "History", icon: "ti-list" },
@@ -572,6 +603,62 @@ export default function HomePage() {
             </div>
           </div>
         )}
+
+        {hasWallet && activeTab === "analytics" && (() => {
+          const txData = transactions.slice().reverse();
+          const labels7 = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+          const labels1M = ["W1","W2","W3","W4"];
+          const labels = analyticsPeriod === "7D" ? labels7 : analyticsPeriod === "1M" ? labels1M : ["Jan","Feb","Mar","Apr","May"];
+          const totalTx = transactions.length;
+          const totalSent = transactions.filter(t => t.transactionType === "OUTBOUND").reduce((a,t) => a + parseFloat(t.amounts?.[0] || "0"), 0);
+          const totalReceived = transactions.filter(t => t.transactionType === "INBOUND").reduce((a,t) => a + parseFloat(t.amounts?.[0] || "0"), 0);
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ background: "#0f0e1a", borderRadius: 16, padding: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>Balance history</span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {(["7D","1M","ALL"] as const).map(p => (
+                      <button key={p} onClick={() => setAnalyticsPeriod(p)} style={{ background: analyticsPeriod === p ? "#7c3aed" : "transparent", border: `1px solid ${analyticsPeriod === p ? "#7c3aed" : "#ffffff15"}`, color: analyticsPeriod === p ? "#fff" : "#ffffff50", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{p}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+                  {[
+                    { label: "Balance", value: parseFloat(usdcBalance || "0").toFixed(2) + " USDC", change: "+12.5 this week", changeColor: "#a855f7" },
+                    { label: "Sent", value: totalSent.toFixed(2) + " USDC", change: totalTx + " transactions", changeColor: "#ffffff30" },
+                    { label: "Received", value: totalReceived.toFixed(2) + " USDC", change: "Total received", changeColor: "#a855f7" },
+                  ].map((s, i) => (
+                    <div key={i} style={{ background: "#ffffff06", borderRadius: 12, padding: 14, border: "1px solid #ffffff08" }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#ffffff35", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>{s.label}</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{s.value}</div>
+                      <div style={{ fontSize: 11, color: s.changeColor, marginTop: 4, fontWeight: 600 }}>{s.change}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: "#ffffff04", borderRadius: 12, padding: 16, border: "1px solid #ffffff08" }}>
+                  <canvas id="analyticsChart" height="160"></canvas>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+                  <div style={{ background: "#ffffff06", borderRadius: 12, padding: 14, display: "flex", alignItems: "center", gap: 12, border: "1px solid #ffffff08" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#7c3aed", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#fff" }}>$</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>USDC</div>
+                      <div style={{ fontSize: 12, color: "#ffffff35", marginTop: 2 }}>{parseFloat(usdcBalance || "0").toFixed(2)} available</div>
+                    </div>
+                  </div>
+                  <div style={{ background: "#ffffff06", borderRadius: 12, padding: 14, display: "flex", alignItems: "center", gap: 12, border: "1px solid #ffffff08" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#2e7d32", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#fff" }}>€</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>EURC</div>
+                      <div style={{ fontSize: 12, color: "#ffffff35", marginTop: 2 }}>{parseFloat(eurcBalance).toFixed(2)} available</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {hasWallet && activeTab === "achievements" && (() => {
           const hasSent = transactions.some(t => t.transactionType === "OUTBOUND");
