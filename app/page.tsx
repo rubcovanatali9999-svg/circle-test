@@ -613,10 +613,17 @@ export default function HomePage() {
 
         {hasWallet && activeTab === "learn" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontSize: 13, color: "#888", fontWeight: 500 }}>Latest from Arc House community</div>
-              <a href="https://arc.house" target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "#1b1464", textDecoration: "none" }}>View all →</a>
+            <div style={{ background: "#1b1464", borderRadius: 14, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <img src="https://community.arc.io/rails/active_storage/representations/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBbVFDIiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--b54b2f3d2f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f/arc-logo.png" alt="Arc" style={{ width: 40, height: 40, borderRadius: "50%", background: "#fff", objectFit: "contain" as const }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>Arc House</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>Builder community by Circle</div>
+                </div>
+              </div>
+              <a href="https://arc.house" target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "#fff", textDecoration: "none", background: "rgba(255,255,255,0.15)", padding: "7px 14px", borderRadius: 8 }}>View all →</a>
             </div>
+            <div style={{ fontSize: 13, color: "#888", fontWeight: 500 }}>Latest from Arc House community</div>
             {[
               { title: "Circle Developer Grants Program Relaunches", desc: "Circle Developer Grant applications are now open. Learn how to apply and get funded for your project.", tags: ["ARC BUILDER FUND", "FUNDING", "OPPORTUNITIES"], author: "Jenna Teeman & Anthony Kelani", date: "May 14, 2026", likes: 183, comments: 92, url: "https://community.arc.io/public/blogs/circle-developer-grants-program-relaunches-2026-05-14" },
               { title: "Circle Developer Grants: From idea to funded", desc: "What are the leading developer grant abilities for builders on Arc? A complete guide to getting backed.", tags: ["CIRCLE DEVELOPER GRANTS", "DEVELOPER"], author: "Jenna Teeman, Anthony Kelani & David Shamash", date: "May 14, 2026", likes: 45, comments: 12, url: "https://arc.house" },
