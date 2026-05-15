@@ -37,7 +37,13 @@ export default function HomePage() {
   const [swapAmount, setSwapAmount] = useState("");
   const [swapMsg, setSwapMsg] = useState<{type:"ok"|"err", text:string}|null>(null);
   const [swapping, setSwapping] = useState(false);
-  const [seeds, setSeeds] = useState<{amount: string; plantedAt: number}[]>([]);
+  const [seeds, setSeeds] = useState<{amount: string; plantedAt: number}[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("garden_seeds");
+      if (saved) return JSON.parse(saved);
+    }
+    return [];
+  });
   const [seedAmount, setSeedAmount] = useState("");
   const [seedMsg, setSeedMsg] = useState<{type:"ok"|"err", text:string}|null>(null);
   const [sendAddress, setSendAddress] = useState("");
@@ -528,7 +534,7 @@ export default function HomePage() {
                       <div style={{ fontSize: 32, marginBottom: 6 }}>{plant}</div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#1b1464" }}>{parseFloat(seed.amount).toFixed(2)} USDC</div>
                       <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>{stage} · {days}d</div>
-                      <button onClick={() => { setSeeds(prev => prev.filter((_, j) => j !== i)); setSeedMsg({ type: "ok", text: "Harvested " + parseFloat(seed.amount).toFixed(2) + " USDC!" }); setTimeout(() => setSeedMsg(null), 3000); }} style={{ marginTop: 8, background: "#1b1464", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Harvest</button>
+                      <button onClick={() => { setSeeds(prev => { const next = prev.filter((_, j) => j !== i); localStorage.setItem("garden_seeds", JSON.stringify(next)); return next; }); setSeedMsg({ type: "ok", text: "Harvested " + parseFloat(seed.amount).toFixed(2) + " USDC!" }); setTimeout(() => setSeedMsg(null), 3000); }} style={{ marginTop: 8, background: "#1b1464", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Harvest</button>
                     </div>
                   );
                 })}
@@ -545,7 +551,11 @@ export default function HomePage() {
                   if (!seedAmount || parseFloat(seedAmount) <= 0) { setSeedMsg({ type: "err", text: "Enter a valid amount" }); return; }
                   if (seeds.length >= 6) { setSeedMsg({ type: "err", text: "Garden is full! Harvest first." }); return; }
                   if (parseFloat(seedAmount) > parseFloat(usdcBalance || "0")) { setSeedMsg({ type: "err", text: "Insufficient balance" }); return; }
-                  setSeeds(prev => [...prev, { amount: seedAmount, plantedAt: Date.now() }]);
+                  setSeeds(prev => {
+                    const next = [...prev, { amount: seedAmount, plantedAt: Date.now() }];
+                    localStorage.setItem("garden_seeds", JSON.stringify(next));
+                    return next;
+                  });
                   setSeedAmount("");
                   setSeedMsg({ type: "ok", text: "Seed planted! Watch it grow." });
                   setTimeout(() => setSeedMsg(null), 3000);
