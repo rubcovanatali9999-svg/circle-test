@@ -621,7 +621,7 @@ export default function HomePage() {
                   <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>Builder community by Circle</div>
                 </div>
               </div>
-              <a href="https://arc.house" target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "#fff", textDecoration: "none", background: "rgba(255,255,255,0.15)", padding: "7px 14px", borderRadius: 8 }}>View all →</a>
+              <a href="https://community.arc.io" target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "#fff", textDecoration: "none", background: "rgba(255,255,255,0.15)", padding: "7px 14px", borderRadius: 8 }}>View all →</a>
             </div>
             <div style={{ fontSize: 13, color: "#888", fontWeight: 500 }}>Latest from Arc House community</div>
             {[
