@@ -24,7 +24,7 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "achievements" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "achievements" | "learn" | "history">("dashboard");
   const [eurcBalance, setEurcBalance] = useState<string>("20.00");
 
   useEffect(() => {
@@ -274,6 +274,7 @@ export default function HomePage() {
     { id: "swap", label: "Swap", icon: "ti-arrows-right-left" },
     { id: "garden", label: "Garden", icon: "ti-plant" },
     { id: "achievements", label: "Achievements", icon: "ti-trophy" },
+    { id: "learn", label: "Learn", icon: "ti-book" },
     { id: "history", label: "History", icon: "ti-list" },
   ] as const;
 
@@ -609,6 +610,47 @@ export default function HomePage() {
             </div>
           );
         })()}
+
+        {hasWallet && activeTab === "learn" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 13, color: "#888", fontWeight: 500 }}>Latest from Arc House community</div>
+              <a href="https://arc.house" target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "#1b1464", textDecoration: "none" }}>View all →</a>
+            </div>
+            {[
+              { title: "Circle Developer Grants Program Relaunches", desc: "Circle Developer Grant applications are now open. Learn how to apply and get funded for your project.", tags: ["ARC BUILDER FUND", "FUNDING", "OPPORTUNITIES"], author: "Jenna Teeman & Anthony Kelani", date: "May 14, 2026", likes: 183, comments: 92, url: "https://community.arc.io/public/blogs/circle-developer-grants-program-relaunches-2026-05-14" },
+              { title: "Circle Developer Grants: From idea to funded", desc: "What are the leading developer grant abilities for builders on Arc? A complete guide to getting backed.", tags: ["CIRCLE DEVELOPER GRANTS", "DEVELOPER"], author: "Jenna Teeman, Anthony Kelani & David Shamash", date: "May 14, 2026", likes: 45, comments: 12, url: "https://arc.house" },
+              { title: "Getting Started with USDC on ARC Testnet", desc: "Learn how to build with USDC stablecoins on the ARC blockchain testnet environment.", tags: ["USDC", "DEVELOPER QUICKSTARTS", "ARC"], author: "Arc Team", date: "May 10, 2026", likes: 210, comments: 34, url: "https://arc.house" },
+              { title: "Stablecoin 101: Everything you need to know", desc: "A beginner-friendly guide to stablecoins — what they are, how they work, and why they matter.", tags: ["STABLECOIN 101", "USDC", "AI"], author: "Arc Team", date: "May 8, 2026", likes: 156, comments: 28, url: "https://arc.house" },
+              { title: "Building Agentic Commerce with Circle Wallets", desc: "Explore how autonomous agents can use Circle wallets to transact on behalf of users.", tags: ["AGENTIC COMMERCE", "CIRCLE WALLETS", "AI"], author: "Arc Team", date: "May 5, 2026", likes: 89, comments: 17, url: "https://arc.house" },
+              { title: "Dev-Controlled Wallets: A Deep Dive", desc: "Understand the difference between user-controlled and dev-controlled wallets and when to use each.", tags: ["DEV-CONTROLLED WALLETS", "DEVELOPER TOOLS"], author: "Arc Team", date: "May 1, 2026", likes: 134, comments: 41, url: "https://arc.house" },
+            ].map((article, i) => (
+              <a key={i} href={article.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+                <div style={{ ...S.card, cursor: "pointer", transition: "border-color .2s" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#1a1a2e", marginBottom: 6, lineHeight: 1.4 }}>{article.title}</div>
+                      <div style={{ fontSize: 13, color: "#888", marginBottom: 12, lineHeight: 1.5, fontWeight: 500 }}>{article.desc}</div>
+                      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 12 }}>
+                        {article.tags.map((tag, j) => (
+                          <span key={j} style={{ fontSize: 10, fontWeight: 700, background: "#e8e6f8", color: "#1b1464", padding: "3px 8px", borderRadius: 20, letterSpacing: ".04em" }}>{tag}</span>
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ fontSize: 11, color: "#bbb", fontWeight: 500 }}>{article.author} · {article.date}</div>
+                        <div style={{ display: "flex", gap: 12 }}>
+                          <span style={{ fontSize: 12, color: "#888", fontWeight: 600 }}><i className="ti ti-thumb-up" aria-hidden="true"></i> {article.likes}</span>
+                          <span style={{ fontSize: 12, color: "#888", fontWeight: 600 }}><i className="ti ti-message" aria-hidden="true"></i> {article.comments}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <i className="ti ti-external-link" aria-hidden="true" style={{ fontSize: 16, color: "#bbb", flexShrink: 0, marginTop: 2 }}></i>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
 
         {hasWallet && activeTab === "history" && (
           <div style={S.card}>
