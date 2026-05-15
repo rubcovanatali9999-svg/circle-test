@@ -56,6 +56,8 @@ export default function HomePage() {
             return;
           }
           setLoginResult({ userToken: result.userToken, encryptionKey: result.encryptionKey });
+          setCookie("userToken", result.userToken);
+          setCookie("encryptionKey", result.encryptionKey);
           setLoginError(null);
           setStatus("Logged in.");
         };
@@ -76,7 +78,13 @@ export default function HomePage() {
           },
         }, onLoginComplete);
         sdkRef.current = sdk;
-        if (!cancelled) { setSdkReady(true); setStatus("Ready"); }
+        const savedUserToken = getCookie("userToken") as string;
+        const savedEncryptionKey = getCookie("encryptionKey") as string;
+        if (savedUserToken && savedEncryptionKey) {
+          setLoginResult({ userToken: savedUserToken, encryptionKey: savedEncryptionKey });
+          setStatus("Restoring session...");
+        }
+        if (!cancelled) { setSdkReady(true); setStatus(savedUserToken ? "Session restored." : "Ready"); }
       } catch (err) {
         if (!cancelled) setStatus("Failed to initialize SDK");
       }
@@ -118,6 +126,13 @@ export default function HomePage() {
       setUsdcBalance(usdcEntry?.amount ?? "0");
     } catch { setStatus("Failed to load balance"); }
   }
+
+  useEffect(() => {
+    const savedUserToken = getCookie("userToken") as string;
+    if (savedUserToken && sdkReady) {
+      void loadWallets(savedUserToken);
+    }
+  }, [sdkReady]);
 
   const loadWallets = async (userToken: string, source?: string) => {
     try {
