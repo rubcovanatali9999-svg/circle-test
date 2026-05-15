@@ -24,7 +24,12 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "garden" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "history">("dashboard");
+  const [eurcBalance, setEurcBalance] = useState<string>("20.00");
+  const [swapFrom, setSwapFrom] = useState<"USDC"|"EURC">("USDC");
+  const [swapAmount, setSwapAmount] = useState("");
+  const [swapMsg, setSwapMsg] = useState<{type:"ok"|"err", text:string}|null>(null);
+  const [swapping, setSwapping] = useState(false);
   const [seeds, setSeeds] = useState<{amount: string; plantedAt: number}[]>([]);
   const [seedAmount, setSeedAmount] = useState("");
   const [seedMsg, setSeedMsg] = useState<{type:"ok"|"err", text:string}|null>(null);
@@ -244,6 +249,7 @@ export default function HomePage() {
     { id: "dashboard", label: "Dashboard", icon: "ti-layout-dashboard" },
     { id: "send", label: "Send", icon: "ti-arrow-up" },
     { id: "receive", label: "Receive", icon: "ti-arrow-down" },
+    { id: "swap", label: "Swap", icon: "ti-arrows-right-left" },
     { id: "garden", label: "Garden", icon: "ti-plant" },
     { id: "history", label: "History", icon: "ti-list" },
   ] as const;
@@ -392,6 +398,83 @@ export default function HomePage() {
               {copied ? "Copied!" : "Copy address"}
             </button>
             <div style={{ marginTop: 16, fontSize: 12, color: "#bbb", fontWeight: 500 }}>Get free testnet USDC at <a href="https://faucet.circle.com" style={{ color: "#1b1464", fontWeight: 700 }}>faucet.circle.com</a></div>
+          </div>
+        )}
+
+        {hasWallet && activeTab === "swap" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 500 }}>
+            <div style={S.card}>
+              <div style={S.cardTitle}>Swap tokens</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ background: "#f8f7fc", borderRadius: 12, padding: 16, border: "1px solid #e5e3ed" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 8 }}>From</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1b1464", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 800 }}>{swapFrom === "USDC" ? "$" : "€"}</div>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#1a1a2e" }}>{swapFrom}</div>
+                        <div style={{ fontSize: 11, color: "#bbb" }}>Balance: {swapFrom === "USDC" ? parseFloat(usdcBalance || "0").toFixed(2) : parseFloat(eurcBalance).toFixed(2)}</div>
+                      </div>
+                    </div>
+                    <input value={swapAmount} onChange={e => setSwapAmount(e.target.value)} type="number" placeholder="0.00" style={{ background: "transparent", border: "none", outline: "none", fontSize: 22, fontWeight: 800, color: "#1a1a2e", textAlign: "right" as const, width: 120 }} />
+                  </div>
+                </div>
+                <button onClick={() => setSwapFrom(prev => prev === "USDC" ? "EURC" : "USDC")} style={{ alignSelf: "center", background: "#e8e6f8", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#1b1464", fontSize: 16 }}>
+                  <i className="ti ti-arrows-up-down" aria-hidden="true"></i>
+                </button>
+                <div style={{ background: "#f8f7fc", borderRadius: 12, padding: 16, border: "1px solid #e5e3ed" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 8 }}>To</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#2e7d32", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 800 }}>{swapFrom === "USDC" ? "€" : "$"}</div>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#1a1a2e" }}>{swapFrom === "USDC" ? "EURC" : "USDC"}</div>
+                        <div style={{ fontSize: 11, color: "#bbb" }}>Balance: {swapFrom === "USDC" ? parseFloat(eurcBalance).toFixed(2) : parseFloat(usdcBalance || "0").toFixed(2)}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "#2e7d32" }}>{swapAmount ? (parseFloat(swapAmount) * (swapFrom === "USDC" ? 0.92 : 1.09)).toFixed(2) : "0.00"}</div>
+                  </div>
+                </div>
+                {swapAmount && parseFloat(swapAmount) > 0 && (
+                  <div style={{ background: "#f8f7fc", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#888" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span>Rate</span>
+                      <span style={{ fontWeight: 700, color: "#1a1a2e" }}>1 {swapFrom} = {swapFrom === "USDC" ? "0.92 EURC" : "1.09 USDC"}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span>Fee</span>
+                      <span style={{ fontWeight: 700, color: "#1a1a2e" }}>0.00 (testnet)</span>
+                    </div>
+                  </div>
+                )}
+                <button disabled={swapping || !swapAmount || parseFloat(swapAmount) <= 0} onClick={async () => {
+                  setSwapping(true); setSwapMsg(null);
+                  await new Promise(r => setTimeout(r, 1500));
+                  const amt = parseFloat(swapAmount);
+                  const received = (amt * (swapFrom === "USDC" ? 0.92 : 1.09)).toFixed(2);
+                  if (swapFrom === "USDC") {
+                    setUsdcBalance(prev => (parseFloat(prev || "0") - amt).toFixed(2));
+                    setEurcBalance(prev => (parseFloat(prev) + parseFloat(received)).toFixed(2));
+                  } else {
+                    setEurcBalance(prev => (parseFloat(prev) - amt).toFixed(2));
+                    setUsdcBalance(prev => (parseFloat(prev || "0") + parseFloat(received)).toFixed(2));
+                  }
+                  setSwapMsg({ type: "ok", text: `Swapped ${amt.toFixed(2)} ${swapFrom} for ${received} ${swapFrom === "USDC" ? "EURC" : "USDC"}!` });
+                  setSwapAmount("");
+                  setSwapping(false);
+                }} style={{ ...S.sendBtn, opacity: swapping || !swapAmount || parseFloat(swapAmount) <= 0 ? 0.5 : 1, cursor: swapping || !swapAmount ? "not-allowed" : "pointer" }}>
+                  {swapping ? "Swapping..." : "Swap now"}
+                </button>
+                {swapMsg && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: swapMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: swapMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{swapMsg.text}</div>}
+              </div>
+            </div>
+            <div style={{ background: "#e8e6f8", borderRadius: 12, padding: "14px 18px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#1b1464", marginBottom: 4 }}>Your balances</div>
+              <div style={{ display: "flex", gap: 16 }}>
+                <div style={{ fontSize: 13, color: "#888" }}>USDC: <span style={{ fontWeight: 800, color: "#1b1464" }}>{parseFloat(usdcBalance || "0").toFixed(2)}</span></div>
+                <div style={{ fontSize: 13, color: "#888" }}>EURC: <span style={{ fontWeight: 800, color: "#2e7d32" }}>{parseFloat(eurcBalance).toFixed(2)}</span></div>
+              </div>
+            </div>
           </div>
         )}
 
