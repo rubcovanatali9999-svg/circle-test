@@ -26,6 +26,13 @@ export default function HomePage() {
   const [status, setStatus] = useState<string>("Initializing...");
   const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "history">("dashboard");
   const [eurcBalance, setEurcBalance] = useState<string>("20.00");
+
+  useEffect(() => {
+    const savedUserToken = getCookie("userToken") as string;
+    if (savedUserToken && wallets.length === 0) {
+      void loadWallets(savedUserToken);
+    }
+  }, [sdkReady]);
   const [swapFrom, setSwapFrom] = useState<"USDC"|"EURC">("USDC");
   const [swapAmount, setSwapAmount] = useState("");
   const [swapMsg, setSwapMsg] = useState<{type:"ok"|"err", text:string}|null>(null);
