@@ -24,7 +24,10 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "garden" | "history">("dashboard");
+  const [seeds, setSeeds] = useState<{amount: string; plantedAt: number}[]>([]);
+  const [seedAmount, setSeedAmount] = useState("");
+  const [seedMsg, setSeedMsg] = useState<{type:"ok"|"err", text:string}|null>(null);
   const [sendAddress, setSendAddress] = useState("");
   const [sendAmount, setSendAmount] = useState("");
   const [sending, setSending] = useState(false);
@@ -241,6 +244,7 @@ export default function HomePage() {
     { id: "dashboard", label: "Dashboard", icon: "ti-layout-dashboard" },
     { id: "send", label: "Send", icon: "ti-arrow-up" },
     { id: "receive", label: "Receive", icon: "ti-arrow-down" },
+    { id: "garden", label: "Garden", icon: "ti-plant" },
     { id: "history", label: "History", icon: "ti-list" },
   ] as const;
 
@@ -388,6 +392,67 @@ export default function HomePage() {
               {copied ? "Copied!" : "Copy address"}
             </button>
             <div style={{ marginTop: 16, fontSize: 12, color: "#bbb", fontWeight: 500 }}>Get free testnet USDC at <a href="https://faucet.circle.com" style={{ color: "#1b1464", fontWeight: 700 }}>faucet.circle.com</a></div>
+          </div>
+        )}
+
+        {hasWallet && activeTab === "garden" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              {[
+                { label: "Staked", value: seeds.reduce((a, s) => a + parseFloat(s.amount || "0"), 0).toFixed(2) + " USDC" },
+                { label: "Plants", value: seeds.length + " / 6" },
+                { label: "Longest", value: seeds.length > 0 ? Math.max(...seeds.map(s => Math.floor((Date.now() - s.plantedAt) / 86400000))) + " days" : "0 days" },
+              ].map((m, i) => (
+                <div key={i} style={S.card}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>{m.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e" }}>{m.value}</div>
+                </div>
+              ))}
+            </div>
+            <div style={S.card}>
+              <div style={S.cardTitle}>Your garden</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
+                {seeds.map((seed, i) => {
+                  const days = Math.floor((Date.now() - seed.plantedAt) / 86400000);
+                  const plant = days >= 14 ? "🌳" : days >= 7 ? "🌸" : days >= 3 ? "🌿" : "🌱";
+                  const stage = days >= 14 ? "Tree" : days >= 7 ? "Flower" : days >= 3 ? "Plant" : "Sprout";
+                  return (
+                    <div key={i} style={{ background: "#f8f7fc", borderRadius: 10, border: "1px solid #e5e3ed", padding: 14, textAlign: "center" }}>
+                      <div style={{ fontSize: 32, marginBottom: 6 }}>{plant}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#1b1464" }}>{parseFloat(seed.amount).toFixed(2)} USDC</div>
+                      <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>{stage} · {days}d</div>
+                      <button onClick={() => { setSeeds(prev => prev.filter((_, j) => j !== i)); setSeedMsg({ type: "ok", text: "Harvested " + parseFloat(seed.amount).toFixed(2) + " USDC!" }); setTimeout(() => setSeedMsg(null), 3000); }} style={{ marginTop: 8, background: "#1b1464", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Harvest</button>
+                    </div>
+                  );
+                })}
+                {Array.from({ length: Math.max(0, 6 - seeds.length) }).map((_, i) => (
+                  <div key={i} style={{ background: "#f8f7fc", borderRadius: 10, border: "2px dashed #e5e3ed", padding: 14, textAlign: "center" }}>
+                    <div style={{ fontSize: 20, color: "#ddd", marginBottom: 4 }}><i className="ti ti-plus" aria-hidden="true"></i></div>
+                    <div style={{ fontSize: 11, color: "#bbb", fontWeight: 600 }}>Empty plot</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 10, marginBottom: seedMsg ? 10 : 0 }}>
+                <input value={seedAmount} onChange={e => setSeedAmount(e.target.value)} type="number" placeholder="Amount to stake (USDC)" style={{ ...S.input, flex: 1 }} />
+                <button onClick={() => {
+                  if (!seedAmount || parseFloat(seedAmount) <= 0) { setSeedMsg({ type: "err", text: "Enter a valid amount" }); return; }
+                  if (seeds.length >= 6) { setSeedMsg({ type: "err", text: "Garden is full! Harvest first." }); return; }
+                  if (parseFloat(seedAmount) > parseFloat(usdcBalance || "0")) { setSeedMsg({ type: "err", text: "Insufficient balance" }); return; }
+                  setSeeds(prev => [...prev, { amount: seedAmount, plantedAt: Date.now() }]);
+                  setSeedAmount("");
+                  setSeedMsg({ type: "ok", text: "Seed planted! Watch it grow." });
+                  setTimeout(() => setSeedMsg(null), 3000);
+                }} style={{ ...S.sendBtn, width: "auto", padding: "11px 20px", whiteSpace: "nowrap" as const }}>Plant seed</button>
+              </div>
+              {seedMsg && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: seedMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: seedMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{seedMsg.text}</div>}
+            </div>
+            <div style={{ background: "#e8e6f8", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1b1464" }}>Need testnet USDC?</div>
+                <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>Get free tokens from Arc Testnet faucet</div>
+              </div>
+              <a href="https://faucet.circle.com" target="_blank" rel="noreferrer" style={{ background: "#1b1464", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", textDecoration: "none" }}>Get tokens</a>
+            </div>
           </div>
         )}
 
