@@ -24,7 +24,7 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "achievements" | "history">("dashboard");
   const [eurcBalance, setEurcBalance] = useState<string>("20.00");
 
   useEffect(() => {
@@ -273,6 +273,7 @@ export default function HomePage() {
     { id: "receive", label: "Receive", icon: "ti-arrow-down" },
     { id: "swap", label: "Swap", icon: "ti-arrows-right-left" },
     { id: "garden", label: "Garden", icon: "ti-plant" },
+    { id: "achievements", label: "Achievements", icon: "ti-trophy" },
     { id: "history", label: "History", icon: "ti-list" },
   ] as const;
 
@@ -560,6 +561,54 @@ export default function HomePage() {
             </div>
           </div>
         )}
+
+        {hasWallet && activeTab === "achievements" && (() => {
+          const hasSent = transactions.some(t => t.transactionType === "OUTBOUND");
+          const hasReceived = transactions.some(t => t.transactionType === "INBOUND");
+          const hasStaked = seeds.length > 0;
+          const hasSwapped = parseFloat(eurcBalance) !== 20;
+          const isWhale = parseFloat(usdcBalance || "0") >= 100;
+          const hasGarden = seeds.length >= 3;
+          const achievements = [
+            { icon: "💸", title: "First Send", desc: "Send your first USDC transaction", done: hasSent },
+            { icon: "📥", title: "First Receive", desc: "Receive USDC for the first time", done: hasReceived },
+            { icon: "🌱", title: "First Stake", desc: "Plant your first seed in the garden", done: hasStaked },
+            { icon: "🔄", title: "Swapper", desc: "Swap USDC for EURC or vice versa", done: hasSwapped },
+            { icon: "🌸", title: "Green Thumb", desc: "Grow 3 plants in your garden", done: hasGarden },
+            { icon: "🐋", title: "Whale", desc: "Hold more than 100 USDC", done: isWhale },
+          ];
+          const earned = achievements.filter(a => a.done).length;
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={S.card}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>Earned</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#1b1464" }}>{earned} / {achievements.length}</div>
+                </div>
+                <div style={S.card}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>Progress</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#1b1464" }}>{Math.round(earned / achievements.length * 100)}%</div>
+                  <div style={{ marginTop: 8, height: 6, background: "#f0eff5", borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${Math.round(earned / achievements.length * 100)}%`, background: "#1b1464", borderRadius: 3 }}></div>
+                  </div>
+                </div>
+              </div>
+              <div style={S.card}>
+                <div style={S.cardTitle}>Your achievements</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {achievements.map((a, i) => (
+                    <div key={i} style={{ background: a.done ? "#e8e6f8" : "#f8f7fc", borderRadius: 12, border: `1px solid ${a.done ? "#c8c5e8" : "#e5e3ed"}`, padding: 16, opacity: a.done ? 1 : 0.5 }}>
+                      <div style={{ fontSize: 28, marginBottom: 8 }}>{a.done ? a.icon : "🔒"}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: a.done ? "#1b1464" : "#888", marginBottom: 4 }}>{a.title}</div>
+                      <div style={{ fontSize: 11, color: a.done ? "#534AB7" : "#bbb", fontWeight: 500 }}>{a.desc}</div>
+                      {a.done && <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: "#1b1464", background: "#fff", padding: "3px 8px", borderRadius: 20, display: "inline-block" }}>Earned!</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {hasWallet && activeTab === "history" && (
           <div style={S.card}>
