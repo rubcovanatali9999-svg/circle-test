@@ -2,7 +2,7 @@
 
 A full-featured Web3 wallet built on **Arc Testnet** using **Circle's USDC**, designed to showcase the power of stablecoin payments and agentic commerce.
 
-🌐 **Live Demo**: https://circle-test-lilac.vercel.app
+🌐 **Live Demo**: https://hashcrewtest.vercel.app
 
 ---
 
