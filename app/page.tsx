@@ -886,7 +886,7 @@ export default function HomePage() {
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.7, opacity: .8, fontWeight: 500 }}>A full-featured Web3 wallet built on Arc Testnet using Circle's USDC, designed to showcase the power of stablecoin payments and agentic commerce.</div>
               <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
-                <a href="https://circle-test-lilac.vercel.app" target="_blank" rel="noreferrer" style={{ background: "#fff", color: "#1b1464", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>🌐 Live Demo</a>
+                <a href="https://hashcrewtest.vercel.app" target="_blank" rel="noreferrer" style={{ background: "#fff", color: "#1b1464", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>🌐 Live Demo</a>
                 <a href="https://github.com/rubcovanatali9999-svg/circle-test" target="_blank" rel="noreferrer" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>GitHub →</a>
               </div>
             </div>
