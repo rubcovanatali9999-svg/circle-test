@@ -587,7 +587,7 @@ export default function HomePage() {
               {[
                 { label: "Staked", value: seeds.reduce((a, s) => a + parseFloat(s.amount || "0"), 0).toFixed(2) + " USDC" },
                 { label: "Plants", value: seeds.length + " / 6" },
-                { label: "Longest", value: seeds.length > 0 ? Math.max(...seeds.map(s => Math.floor((Date.now() - s.plantedAt) / 86400000))) + " days" : "0 days" },
+                { label: "Longest", value: seeds.length > 0 ? (() => { const ms = Math.max(...seeds.map(s => Date.now() - s.plantedAt)); const d = Math.floor(ms/86400000); const h = Math.floor(ms/3600000); return d > 0 ? d + " days" : h + "h"; })() : "0 days" },
               ].map((m, i) => (
                 <div key={i} style={S.card}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>{m.label}</div>
@@ -599,14 +599,14 @@ export default function HomePage() {
               <div style={S.cardTitle}>Your garden</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
                 {seeds.map((seed, i) => {
-                  const days = Math.floor((Date.now() - seed.plantedAt) / 86400000);
+                  const msAgo = Date.now() - seed.plantedAt; const days = Math.floor(msAgo / 86400000); const hours = Math.floor(msAgo / 3600000);
                   const plant = days >= 14 ? "🌳" : days >= 7 ? "🌸" : days >= 3 ? "🌿" : "🌱";
                   const stage = days >= 14 ? "Tree" : days >= 7 ? "Flower" : days >= 3 ? "Plant" : "Sprout";
                   return (
                     <div key={i} style={{ background: "#f8f7fc", borderRadius: 10, border: "1px solid #e5e3ed", padding: 14, textAlign: "center" }}>
                       <div style={{ fontSize: 32, marginBottom: 6 }}>{plant}</div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#1b1464" }}>{parseFloat(seed.amount).toFixed(2)} USDC</div>
-                      <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>{stage} · {days}d</div>
+                      <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>{stage} · {days > 0 ? days + "d" : hours + "h"}</div>
                       <button onClick={() => { setSeeds(prev => { const next = prev.filter((_, j) => j !== i); localStorage.setItem("garden_seeds", JSON.stringify(next)); return next; }); setSeedMsg({ type: "ok", text: "Harvested " + parseFloat(seed.amount).toFixed(2) + " USDC!" }); setTimeout(() => setSeedMsg(null), 3000); }} style={{ marginTop: 8, background: "#1b1464", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Harvest</button>
                     </div>
                   );
