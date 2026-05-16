@@ -24,7 +24,10 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "analytics" | "achievements" | "learn" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "analytics" | "achievements" | "ai" | "learn" | "history">("dashboard");
+  const [aiMessages, setAiMessages] = useState<{role:"user"|"ai", text:string}[]>([{ role: "ai", text: "Hello! 👋 I'm HashCrew AI, your Web3 assistant. Ask me anything about USDC, Arc, staking or swapping!" }]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
   const [analyticsPeriod, setAnalyticsPeriod] = useState<"7D"|"1M"|"ALL">("7D");
   const [eurcBalance, setEurcBalance] = useState<string>("20.00");
 
@@ -311,6 +314,7 @@ export default function HomePage() {
     { id: "garden", label: "Garden", icon: "ti-plant" },
     { id: "analytics", label: "Analytics", icon: "ti-chart-line" },
     { id: "achievements", label: "Achievements", icon: "ti-trophy" },
+    { id: "ai", label: "AI Assistant", icon: "ti-robot" },
     { id: "learn", label: "Learn", icon: "ti-book" },
     { id: "history", label: "History", icon: "ti-list" },
   ] as const;
@@ -659,6 +663,81 @@ export default function HomePage() {
             </div>
           );
         })()}
+
+        {hasWallet && activeTab === "ai" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 600 }}>
+            <div style={{ background: "#0f0e1a", borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", height: 500 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #ffffff10" }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #7c3aed, #1b1464)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🤖</div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>HashCrew AI</div>
+                  <div style={{ fontSize: 12, color: "#ffffff40", fontWeight: 500 }}>Your Web3 assistant</div>
+                </div>
+                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#a855f7" }}></div>
+                  <span style={{ fontSize: 11, color: "#a855f7", fontWeight: 600 }}>Online</span>
+                </div>
+              </div>
+              <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+                {aiMessages.map((msg, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
+                    <div style={{ maxWidth: "80%", padding: "10px 14px", borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: msg.role === "user" ? "#7c3aed" : "#ffffff10", color: "#fff", fontSize: 13, fontWeight: 500, lineHeight: 1.5, whiteSpace: "pre-line" as const }}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+                {aiLoading && (
+                  <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                    <div style={{ padding: "10px 14px", borderRadius: "16px 16px 16px 4px", background: "#ffffff10", color: "#ffffff50", fontSize: 13 }}>Thinking...</div>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={async e => {
+                  if (e.key === "Enter" && aiInput.trim() && !aiLoading) {
+                    const msg = aiInput.trim();
+                    setAiInput("");
+                    setAiMessages(prev => [...prev, { role: "user", text: msg }]);
+                    setAiLoading(true);
+                    try {
+                      const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "askAI", message: msg, balance: usdcBalance, blockchain: primaryWallet?.blockchain }) });
+                      const data = await res.json();
+                      setAiMessages(prev => [...prev, { role: "ai", text: data.reply || "Sorry, I couldn't process that." }]);
+                    } catch { setAiMessages(prev => [...prev, { role: "ai", text: "Connection error. Please try again." }]); }
+                    setAiLoading(false);
+                  }
+                }} placeholder="Ask me anything... (press Enter)" style={{ flex: 1, background: "#ffffff08", border: "1px solid #ffffff15", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#fff", outline: "none" }} />
+                <button onClick={async () => {
+                  if (!aiInput.trim() || aiLoading) return;
+                  const msg = aiInput.trim();
+                  setAiInput("");
+                  setAiMessages(prev => [...prev, { role: "user", text: msg }]);
+                  setAiLoading(true);
+                  try {
+                    const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "askAI", message: msg, balance: usdcBalance, blockchain: primaryWallet?.blockchain }) });
+                    const data = await res.json();
+                    setAiMessages(prev => [...prev, { role: "ai", text: data.reply || "Sorry, I couldn't process that." }]);
+                  } catch { setAiMessages(prev => [...prev, { role: "ai", text: "Connection error. Please try again." }]); }
+                  setAiLoading(false);
+                }} style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send</button>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+              {["What is my balance?", "How do I send USDC?", "Tell me about Arc", "How does staking work?"].map((q, i) => (
+                <button key={i} onClick={async () => {
+                  setAiMessages(prev => [...prev, { role: "user", text: q }]);
+                  setAiLoading(true);
+                  try {
+                    const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "askAI", message: q, balance: usdcBalance, blockchain: primaryWallet?.blockchain }) });
+                    const data = await res.json();
+                    setAiMessages(prev => [...prev, { role: "ai", text: data.reply || "Sorry, I couldn't process that." }]);
+                  } catch { setAiMessages(prev => [...prev, { role: "ai", text: "Connection error." }]); }
+                  setAiLoading(false);
+                }} style={{ background: "#fff", border: "1px solid #e5e3ed", borderRadius: 10, padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#1b1464", cursor: "pointer", textAlign: "left" as const }}>{q}</button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {hasWallet && activeTab === "achievements" && (() => {
           const hasSent = transactions.some(t => t.transactionType === "OUTBOUND");
