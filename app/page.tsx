@@ -346,15 +346,50 @@ export default function HomePage() {
           <div style={S.logoIcon}>H</div>
           <span style={S.logoText}>HashCrew<br/>Arc Testnet</span>
         </div>
-        {nav.map((item) => (
-          <button key={item.id} onClick={() => setActiveTab(item.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 18px", fontSize: 13, fontWeight: 600, color: activeTab === item.id ? "#1b1464" : "#999", background: activeTab === item.id ? "#f0eff5" : "transparent", borderRight: activeTab === item.id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left", cursor: "pointer", width: "100%" }}>
-            <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>
-            {item.label}
-          </button>
-        ))}
+        <div style={{ padding: "0 12px 6px", fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".08em" }}>Main</div>
+        {(["dashboard","send","receive","swap"] as const).map((id) => {
+          const item = nav.find(n => n.id === id)!;
+          return <button key={id} onClick={() => setActiveTab(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", fontSize: 13, fontWeight: 600, color: activeTab === id ? "#1b1464" : "#999", background: activeTab === id ? "#f0eff5" : "transparent", borderRight: activeTab === id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left" as const, cursor: "pointer", width: "100%" }}>
+            <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>{item.label}
+          </button>;
+        })}
+        <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".08em" }}>Tools</div>
+        {(["garden","analytics","ai"] as const).map((id) => {
+          const item = nav.find(n => n.id === id)!;
+          return <button key={id} onClick={() => setActiveTab(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", fontSize: 13, fontWeight: 600, color: activeTab === id ? "#1b1464" : "#999", background: activeTab === id ? "#f0eff5" : "transparent", borderRight: activeTab === id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left" as const, cursor: "pointer", width: "100%" }}>
+            <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>{item.label}
+          </button>;
+        })}
+        <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".08em" }}>Info</div>
+        {(["achievements","learn","history"] as const).map((id) => {
+          const item = nav.find(n => n.id === id)!;
+          return <button key={id} onClick={() => setActiveTab(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", fontSize: 13, fontWeight: 600, color: activeTab === id ? "#1b1464" : "#999", background: activeTab === id ? "#f0eff5" : "transparent", borderRight: activeTab === id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left" as const, cursor: "pointer", width: "100%" }}>
+            <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>{item.label}
+          </button>;
+        })}
         <div style={{ marginTop: "auto", padding: "16px 18px", borderTop: "1px solid #f0eff5" }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#bbb", marginBottom: 4, textTransform: "uppercase", letterSpacing: ".06em" }}>Status</div>
-          <div style={{ fontSize: 12, color: "#888", lineHeight: 1.5 }}>{status}</div>
+          <div style={{ fontSize: 12, color: "#888", lineHeight: 1.5, marginBottom: 12 }}>{status}</div>
+          {isLoggedIn && (
+            <button onClick={() => {
+              setLoginResult(null);
+              setWallets([]);
+              setUsdcBalance(null);
+              setDeviceToken("");
+              setDeviceEncryptionKey("");
+              setChallengeId(null);
+              setAiMessages([{ role: "ai", text: "Hello! 👋 I'm HashCrew AI, your Web3 assistant. Ask me anything about USDC, Arc, staking or swapping!" }]);
+              if (typeof window !== "undefined") {
+                document.cookie = "userToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                document.cookie = "encryptionKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                document.cookie = "deviceToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                document.cookie = "deviceEncryptionKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+              }
+              setStatus("Signed out");
+            }} style={{ width: "100%", background: "#fce8e8", color: "#c62828", border: "none", borderRadius: 8, padding: "9px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <i className="ti ti-logout" aria-hidden="true"></i> Sign Out
+            </button>
+          )}
         </div>
       </aside>
 
