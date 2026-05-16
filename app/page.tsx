@@ -24,7 +24,7 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "analytics" | "achievements" | "ai" | "learn" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "analytics" | "achievements" | "ai" | "learn" | "history" | "about">("dashboard");
   const [aiMessages, setAiMessages] = useState<{role:"user"|"ai", text:string}[]>([{ role: "ai", text: "Hello! 👋 I'm HashCrew AI, your Web3 assistant. Ask me anything about USDC, Arc, staking or swapping!" }]);
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -317,6 +317,7 @@ export default function HomePage() {
     { id: "ai", label: "AI Assistant", icon: "ti-robot" },
     { id: "learn", label: "Learn", icon: "ti-book" },
     { id: "history", label: "History", icon: "ti-list" },
+    { id: "about", label: "About", icon: "ti-info-circle" },
   ] as const;
 
   const S = {
@@ -870,6 +871,64 @@ export default function HomePage() {
                 </div>
               </a>
             ))}
+          </div>
+        )}
+
+        {hasWallet && activeTab === "about" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ background: "#1b1464", borderRadius: 16, padding: 28, color: "#fff" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+                <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, color: "#1b1464" }}>H</div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}>HashCrew</div>
+                  <div style={{ fontSize: 13, opacity: .6, fontWeight: 500 }}>Arc Testnet Wallet</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 14, lineHeight: 1.7, opacity: .8, fontWeight: 500 }}>A full-featured Web3 wallet built on Arc Testnet using Circle's USDC, designed to showcase the power of stablecoin payments and agentic commerce.</div>
+              <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+                <a href="https://circle-test-lilac.vercel.app" target="_blank" rel="noreferrer" style={{ background: "#fff", color: "#1b1464", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>🌐 Live Demo</a>
+                <a href="https://github.com/rubcovanatali9999-svg/circle-test" target="_blank" rel="noreferrer" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>GitHub →</a>
+              </div>
+            </div>
+            <div style={S.card}>
+              <div style={S.cardTitle}>Features</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {[
+                  { icon: "🔐", title: "Google OAuth Login", desc: "Seamless social login via Circle SDK" },
+                  { icon: "💸", title: "Send USDC", desc: "Real on-chain transactions on Arc" },
+                  { icon: "🔄", title: "Swap USDC ↔ EURC", desc: "Swap between stablecoins" },
+                  { icon: "🌱", title: "Staking Garden", desc: "Gamified staking experience" },
+                  { icon: "📊", title: "Analytics", desc: "Balance history with charts" },
+                  { icon: "🏆", title: "Achievements", desc: "Earn badges for milestones" },
+                  { icon: "🤖", title: "AI Assistant", desc: "Built-in Web3 helper" },
+                  { icon: "📚", title: "Learn", desc: "Arc House community content" },
+                ].map((f, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px", background: "#f8f7fc", borderRadius: 10, border: "1px solid #e5e3ed" }}>
+                    <div style={{ fontSize: 20 }}>{f.icon}</div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>{f.title}</div>
+                      <div style={{ fontSize: 11, color: "#888", marginTop: 2, fontWeight: 500 }}>{f.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={S.card}>
+              <div style={S.cardTitle}>Tech Stack</div>
+              <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
+                {["Next.js 16", "TypeScript", "React", "Circle SDK", "Arc Testnet", "USDC", "EURC", "Google OAuth", "Vercel"].map((t, i) => (
+                  <span key={i} style={{ fontSize: 12, fontWeight: 700, background: "#e8e6f8", color: "#1b1464", padding: "5px 12px", borderRadius: 20 }}>{t}</span>
+                ))}
+              </div>
+            </div>
+            <div style={S.card}>
+              <div style={S.cardTitle}>Why Arc?</div>
+              <div style={{ fontSize: 13, color: "#888", lineHeight: 1.7, fontWeight: 500 }}>Arc is built for fast, cheap stablecoin payments — perfect for the agentic commerce future. HashCrew demonstrates how AI agents could one day manage wallets, make payments, and interact with DeFi protocols autonomously.</div>
+            </div>
+            <div style={{ ...S.card, textAlign: "center" as const }}>
+              <div style={{ fontSize: 13, color: "#888", fontWeight: 500 }}>Built with ❤️ for the Arc ecosystem</div>
+              <div style={{ fontSize: 12, color: "#bbb", marginTop: 4 }}>by Natali Rubtsova</div>
+            </div>
           </div>
         )}
 
