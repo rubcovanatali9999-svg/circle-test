@@ -377,6 +377,9 @@ export default function HomePage() {
               setUsdcBalance(null);
               setDeviceToken("");
               setDeviceEncryptionKey("");
+              if (typeof window !== "undefined") {
+                window.localStorage.removeItem("deviceId");
+              }
               setChallengeId(null);
               setAiMessages([{ role: "ai", text: "Hello! 👋 I'm HashCrew AI, your Web3 assistant. Ask me anything about USDC, Arc, staking or swapping!" }]);
               if (typeof window !== "undefined") {
