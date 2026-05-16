@@ -134,15 +134,7 @@ export async function POST(request: Request) {
         } else if (msg.includes("hello") || msg.includes("hi") || msg.includes("привет") || msg.includes("хай")) {
           reply = `Hello! 👋 I'm HashCrew AI, your Web3 assistant. Your balance is ${balance} USDC on ${blockchain}. How can I help you today?`;
         } else if (msg.includes("help") || msg.includes("помог") || msg.includes("что умеешь")) {
-          reply = "I can help you with:
-• 💰 Check your balance
-• 💸 How to send USDC
-• 🌱 Staking in the Garden
-• 🔄 Swapping USDC ↔ EURC
-• 🚰 Getting testnet tokens
-• 🔗 Arc & USDC info
-
-Just ask me anything!";
+          reply = "I can help you with: check balance, send USDC, staking in Garden, swap USDC to EURC, get testnet tokens, and learn about Arc blockchain. Just ask!";;
         } else {
           reply = `Great question! I'm HashCrew AI here to help you navigate Web3 on Arc Testnet. Your balance is ${balance} USDC. Try asking me about sending, staking, swapping, or the Arc blockchain!`;
         }
