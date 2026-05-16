@@ -362,7 +362,7 @@ export default function HomePage() {
           </button>;
         })}
         <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".08em" }}>Info</div>
-        {(["achievements","learn","history"] as const).map((id) => {
+        {(["achievements","learn","history","about"] as const).map((id) => {
           const item = nav.find(n => n.id === id)!;
           return <button key={id} onClick={() => setActiveTab(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", fontSize: 13, fontWeight: 600, color: activeTab === id ? "#1b1464" : "#999", background: activeTab === id ? "#f0eff5" : "transparent", borderRight: activeTab === id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left" as const, cursor: "pointer", width: "100%" }}>
             <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>{item.label}
