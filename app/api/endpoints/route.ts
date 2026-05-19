@@ -130,7 +130,7 @@ export async function POST(request: Request) {
           }),
         });
         const data = await response.json();
-        if (!response.ok) return NextResponse.json({ reply: "AI unavailable. Try again." }, { status: 200 });
+        if (!response.ok) return NextResponse.json({ reply: "Error: " + JSON.stringify(data) }, { status: 200 });
         return NextResponse.json({ reply: data.content[0].text }, { status: 200 });
       }
       default:
