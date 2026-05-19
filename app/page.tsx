@@ -24,7 +24,20 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "garden" | "analytics" | "achievements" | "ai" | "learn" | "history" | "about">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "treasury" | "garden" | "analytics" | "achievements" | "ai" | "learn" | "history" | "about">("dashboard");
+  const [rules, setRules] = useState<{id:number; type:string; threshold:string; action:string; amount:string; address:string; active:boolean}[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("treasury_rules");
+      if (saved) return JSON.parse(saved);
+    }
+    return [];
+  });
+  const [ruleType, setRuleType] = useState("above");
+  const [ruleThreshold, setRuleThreshold] = useState("");
+  const [ruleAction, setRuleAction] = useState("stake");
+  const [ruleAmount, setRuleAmount] = useState("");
+  const [ruleAddress, setRuleAddress] = useState("");
+  const [ruleMsg, setRuleMsg] = useState<{type:"ok"|"err", text:string}|null>(null);
   const [aiMessages, setAiMessages] = useState<{role:"user"|"ai", text:string}[]>([{ role: "ai", text: "Hello! 👋 I'm HashCrew AI, your Web3 assistant. Ask me anything about USDC, Arc, staking or swapping!" }]);
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -311,6 +324,7 @@ export default function HomePage() {
     { id: "send", label: "Send", icon: "ti-arrow-up" },
     { id: "receive", label: "Receive", icon: "ti-arrow-down" },
     { id: "swap", label: "Swap", icon: "ti-arrows-right-left" },
+    { id: "treasury", label: "Treasury", icon: "ti-building-bank" },
     { id: "garden", label: "Garden", icon: "ti-plant" },
     { id: "analytics", label: "Analytics", icon: "ti-chart-line" },
     { id: "achievements", label: "Achievements", icon: "ti-trophy" },
@@ -355,7 +369,7 @@ export default function HomePage() {
           </button>;
         })}
         <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".08em" }}>Tools</div>
-        {(["garden","analytics","ai"] as const).map((id) => {
+        {(["garden","treasury","analytics","ai"] as const).map((id) => {
           const item = nav.find(n => n.id === id)!;
           return <button key={id} onClick={() => setActiveTab(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", fontSize: 13, fontWeight: 600, color: activeTab === id ? "#1b1464" : "#999", background: activeTab === id ? "#f0eff5" : "transparent", borderRight: activeTab === id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left" as const, cursor: "pointer", width: "100%" }}>
             <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>{item.label}
@@ -596,6 +610,96 @@ export default function HomePage() {
                 <div style={{ fontSize: 13, color: "#888" }}>EURC: <span style={{ fontWeight: 800, color: "#2e7d32" }}>{parseFloat(eurcBalance).toFixed(2)}</span></div>
               </div>
             </div>
+          </div>
+        )}
+
+        {hasWallet && activeTab === "treasury" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ background: "#1b1464", borderRadius: 16, padding: 24, color: "#fff" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, opacity: .6, textTransform: "uppercase" as const, letterSpacing: ".08em", marginBottom: 8 }}>Treasury Balance</div>
+              <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1px", marginBottom: 4 }}>{parseFloat(usdcBalance || "0").toFixed(2)} USDC</div>
+              <div style={{ fontSize: 13, opacity: .6 }}>+ {eurcBalance} EURC</div>
+              <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+                <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 600 }}>
+                  {rules.filter(r => r.active).length} active rules
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 600 }}>
+                  Auto-management ON
+                </div>
+              </div>
+            </div>
+
+            <div style={S.card}>
+              <div style={S.cardTitle}>Create automation rule</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Condition</label>
+                    <select value={ruleType} onChange={e => setRuleType(e.target.value)} style={S.input}>
+                      <option value="above">Balance above</option>
+                      <option value="below">Balance below</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Threshold (USDC)</label>
+                    <input value={ruleThreshold} onChange={e => setRuleThreshold(e.target.value)} type="number" placeholder="50" style={S.input} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Action</label>
+                  <select value={ruleAction} onChange={e => setRuleAction(e.target.value)} style={S.input}>
+                    <option value="stake">Auto-stake in garden</option>
+                    <option value="notify">Notify me</option>
+                    <option value="swap">Auto-swap to EURC</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Amount (USDC)</label>
+                  <input value={ruleAmount} onChange={e => setRuleAmount(e.target.value)} type="number" placeholder="10" style={S.input} />
+                </div>
+                <button onClick={() => {
+                  if (!ruleThreshold || !ruleAmount) { setRuleMsg({ type: "err", text: "Fill all fields" }); return; }
+                  const newRule = { id: Date.now(), type: ruleType, threshold: ruleThreshold, action: ruleAction, amount: ruleAmount, address: ruleAddress, active: true };
+                  const updated = [...rules, newRule];
+                  setRules(updated);
+                  localStorage.setItem("treasury_rules", JSON.stringify(updated));
+                  setRuleThreshold(""); setRuleAmount(""); setRuleAddress("");
+                  setRuleMsg({ type: "ok", text: "Rule created! Monitoring balance..." });
+                  setTimeout(() => setRuleMsg(null), 3000);
+                }} style={S.sendBtn}>Create rule</button>
+                {ruleMsg && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: ruleMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: ruleMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{ruleMsg.text}</div>}
+              </div>
+            </div>
+
+            {rules.length > 0 && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>Active rules</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {rules.map((rule, i) => {
+                    const balance = parseFloat(usdcBalance || "0");
+                    const threshold = parseFloat(rule.threshold);
+                    const triggered = rule.type === "above" ? balance > threshold : balance < threshold;
+                    return (
+                      <div key={rule.id} style={{ background: triggered ? "#e8f5e9" : "#f8f7fc", borderRadius: 10, border: `1px solid ${triggered ? "#c8e6c9" : "#e5e3ed"}`, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", marginBottom: 4 }}>
+                            If balance {rule.type === "above" ? ">" : "<"} {rule.threshold} USDC → {rule.action === "stake" ? "stake" : rule.action === "swap" ? "swap to EURC" : "notify"} {rule.amount} USDC
+                          </div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: triggered ? "#2e7d32" : "#bbb" }}>
+                            {triggered ? "✓ Condition met!" : "Monitoring..."}
+                          </div>
+                        </div>
+                        <button onClick={() => {
+                          const updated = rules.filter((_, j) => j !== i);
+                          setRules(updated);
+                          localStorage.setItem("treasury_rules", JSON.stringify(updated));
+                        }} style={{ background: "transparent", border: "1px solid #e5e3ed", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 700, color: "#888", cursor: "pointer" }}>Delete</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
