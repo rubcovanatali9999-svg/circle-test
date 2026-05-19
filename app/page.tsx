@@ -873,8 +873,9 @@ export default function HomePage() {
                       if (jsonMatch) {
                         try {
                           const parsed = JSON.parse(jsonMatch[1]);
-                          if (parsed.action === "transfer" && parsed.recipient && parsed.amount) {
-                            setSendAddress(parsed.recipient);
+                          const addr = parsed.recipient || parsed.toAddress || parsed.to || parsed.address;
+                          if (parsed.action === "transfer" && addr && parsed.amount) {
+                            setSendAddress(addr);
                             setSendAmount(String(parsed.amount));
                             setActiveTab("send");
                             setAiMessages(prev => [...prev, { role: "ai", text: "Send form pre-filled! Go to Send tab to confirm." }]);
