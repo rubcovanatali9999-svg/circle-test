@@ -123,7 +123,7 @@ export async function POST(request: Request) {
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-3-opus-20240229",
+            model: "claude-opus-4-5",
             max_tokens: 500,
             system: `You are HashCrew AI, a friendly Web3 assistant for the HashCrew Arc Testnet wallet. User USDC balance: ${balance} on ${blockchain}. Help with USDC, Arc blockchain, staking, swapping. Be concise. Answer in user language.`,
             messages: [{ role: "user", content: message }],
