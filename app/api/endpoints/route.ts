@@ -113,32 +113,25 @@ export async function POST(request: Request) {
         if (!response.ok) return NextResponse.json(data, { status: response.status });
         return NextResponse.json(data.data, { status: 200 });
       }
-      case "askAI": {
+            case "askAI": {
         const { message, balance, blockchain } = params;
-        const msg = message.toLowerCase();
-        let reply = "";
-        if (msg.includes("balance") || msg.includes("баланс")) {
-          reply = `Your current USDC balance is ${balance} on ${blockchain}. You can send, receive or stake your tokens!`;
-        } else if (msg.includes("send") || msg.includes("отправить") || msg.includes("отправь")) {
-          reply = "To send USDC, go to the Send tab, enter the recipient address and amount, then confirm with your Google account. Transactions are fast on Arc Testnet!";
-        } else if (msg.includes("stake") || msg.includes("garden") || msg.includes("стейк") || msg.includes("сад")) {
-          reply = "In the Garden tab you can stake your USDC! Plant seeds and watch them grow. Seeds evolve: 🌱 Day 1 → 🌿 Day 3 → 🌸 Day 7 → 🌳 Day 14. Harvest anytime!";
-        } else if (msg.includes("swap") || msg.includes("свап") || msg.includes("обменять")) {
-          reply = "You can swap USDC ↔ EURC in the Swap tab! Rate: 1 USDC = 0.92 EURC or 1 EURC = 1.09 USDC.";
-        } else if (msg.includes("faucet") || msg.includes("токен") || msg.includes("free") || msg.includes("бесплатн")) {
-          reply = "Need testnet USDC? Visit faucet.circle.com and enter your wallet address to get free test tokens on Arc Testnet!";
-        } else if (msg.includes("arc") ) {
-          reply = "Arc is a high-performance blockchain built for stablecoin payments. HashCrew is built on Arc Testnet using Circle's USDC. Arc is designed for fast, cheap transactions perfect for everyday payments!";
-        } else if (msg.includes("usdc")) {
-          reply = "USDC is a stablecoin pegged 1:1 to the US dollar, issued by Circle. On Arc Testnet you can send, receive, stake and swap USDC for free using test tokens!";
-        } else if (msg.includes("hello") || msg.includes("hi") || msg.includes("привет") || msg.includes("хай")) {
-          reply = `Hello! 👋 I'm HashCrew AI, your Web3 assistant. Your balance is ${balance} USDC on ${blockchain}. How can I help you today?`;
-        } else if (msg.includes("help") || msg.includes("помог") || msg.includes("что умеешь")) {
-          reply = "I can help you with: check balance, send USDC, staking in Garden, swap USDC to EURC, get testnet tokens, and learn about Arc blockchain. Just ask!";;
-        } else {
-          reply = `Great question! I'm HashCrew AI here to help you navigate Web3 on Arc Testnet. Your balance is ${balance} USDC. Try asking me about sending, staking, swapping, or the Arc blockchain!`;
-        }
-        return NextResponse.json({ reply }, { status: 200 });
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.ANTHROPIC_API_KEY as string,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 500,
+            system: `You are HashCrew AI, a friendly Web3 assistant for the HashCrew Arc Testnet wallet. User USDC balance: ${balance} on ${blockchain}. Help with USDC, Arc blockchain, staking, swapping. Be concise. Answer in user language.`,
+            messages: [{ role: "user", content: message }],
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) return NextResponse.json({ reply: "AI unavailable. Try again." }, { status: 200 });
+        return NextResponse.json({ reply: data.content[0].text }, { status: 200 });
       }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
