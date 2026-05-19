@@ -21,6 +21,7 @@ HashCrew is a next-generation Web3 wallet that combines real blockchain transact
 | 📊 **Analytics** | Balance history with neon purple charts |
 | 🏆 **Achievements** | Earn badges for sending, staking, swapping and more |
 | 🤖 **AI Assistant** | Built-in Web3 assistant that knows your balance and helps with transactions |
+| 🏦 **Treasury Management** | Automated rules for balance management |
 | 📚 **Learn** | Curated content from Arc House community |
 | 📜 **Transaction History** | Full history of all on-chain transactions |
 
