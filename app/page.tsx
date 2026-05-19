@@ -470,6 +470,23 @@ export default function HomePage() {
                 <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Amount (USDC)</label>
                 <input value={sendAmount} onChange={e => setSendAmount(e.target.value)} type="number" placeholder="0.00" style={S.input} />
               </div>
+              {sendAmount && parseFloat(sendAmount) > 0 && (
+                <div style={{ background: "#f8f7fc", borderRadius: 10, padding: "12px 14px", border: "1px solid #e5e3ed" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, color: "#888", fontWeight: 500 }}>Amount</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>{parseFloat(sendAmount).toFixed(2)} USDC</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, color: "#888", fontWeight: 500 }}>Network fee</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>~0.004 USDC</span>
+                  </div>
+                  <div style={{ height: 1, background: "#e5e3ed", margin: "8px 0" }}></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 12, color: "#1a1a2e", fontWeight: 700 }}>Total</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "#1b1464" }}>{(parseFloat(sendAmount) + 0.004).toFixed(3)} USDC</span>
+                  </div>
+                </div>
+              )}
               <button disabled={sending || !sendAddress || !sendAmount} onClick={async () => {
                 setSending(true); setSendMsg(null);
                 try {
