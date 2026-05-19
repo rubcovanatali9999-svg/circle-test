@@ -457,7 +457,12 @@ export default function HomePage() {
                 <button style={S.balBtn} onClick={() => setActiveTab("history")}><i className="ti ti-list" aria-hidden="true"></i> History</button>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+              <div style={S.card}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>EURC Balance</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#2e7d32" }}>{parseFloat(eurcBalance).toFixed(2)}</div>
+                <div style={{ fontSize: 12, color: "#888", marginTop: 4, fontWeight: 500 }}>EUR Stablecoin</div>
+              </div>
               <div style={S.card}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>Blockchain</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e" }}>{primaryWallet.blockchain}</div>
