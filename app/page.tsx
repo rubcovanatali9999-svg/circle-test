@@ -979,6 +979,7 @@ export default function HomePage() {
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: isIn ? "#2e7d32" : "#c62828" }}>{isIn ? "+" : "-"}{parseFloat(amount).toFixed(2)} USDC</div>
+                        {tx.networkFee && <div style={{ fontSize: 11, color: "#bbb" }}>fee: {parseFloat(tx.networkFee).toFixed(6)} USDC</div>}
                         <div style={{ fontSize: 11, color: "#bbb" }}>{date}</div>
                       </div>
                     </div>
