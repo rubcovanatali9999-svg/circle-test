@@ -867,7 +867,20 @@ export default function HomePage() {
                     try {
                       const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "askAI", message: msg, balance: usdcBalance, blockchain: primaryWallet?.blockchain }) });
                       const data = await res.json();
-                      setAiMessages(prev => [...prev, { role: "ai", text: data.reply || "Sorry, I couldn't process that." }]);
+                      const reply = data.reply || "Sorry, I could not process that.";
+                      setAiMessages(prev => [...prev, { role: "ai", text: reply }]);
+                      const jsonMatch = reply.match(/```json\n?([\s\S]*?)\n?```/);
+                      if (jsonMatch) {
+                        try {
+                          const parsed = JSON.parse(jsonMatch[1]);
+                          if (parsed.action === "transfer" && parsed.recipient && parsed.amount) {
+                            setSendAddress(parsed.recipient);
+                            setSendAmount(String(parsed.amount));
+                            setActiveTab("send");
+                            setAiMessages(prev => [...prev, { role: "ai", text: "Send form pre-filled! Go to Send tab to confirm." }]);
+                          }
+                        } catch {}
+                      }
                     } catch { setAiMessages(prev => [...prev, { role: "ai", text: "Connection error. Please try again." }]); }
                     setAiLoading(false);
                   }
