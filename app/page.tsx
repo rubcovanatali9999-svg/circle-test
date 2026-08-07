@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { setCookie, getCookie } from "cookies-next";
 import { SocialLoginProvider } from "@circle-fin/w3s-pw-web-sdk/dist/src/types";
 import type { W3SSdk } from "@circle-fin/w3s-pw-web-sdk";
+import WalletConnect from "./WalletConnect";
 
 const appId = process.env.NEXT_PUBLIC_CIRCLE_APP_ID as string;
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string;
@@ -419,6 +420,7 @@ export default function HomePage() {
               <button onClick={handleBack} style={{ background: "transparent", color: "#888", border: "1px solid #e5e3ed", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>← Back</button>
             )}
             <span style={{ fontSize: 11, fontWeight: 700, background: "#e8e6f8", color: "#1b1464", padding: "5px 12px", borderRadius: 20, letterSpacing: ".04em" }}>ARC TESTNET</span>
+        <WalletConnect />
           </div>
         </div>
 
