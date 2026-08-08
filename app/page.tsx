@@ -5,6 +5,7 @@ import { setCookie, getCookie } from "cookies-next";
 import { SocialLoginProvider } from "@circle-fin/w3s-pw-web-sdk/dist/src/types";
 import type { W3SSdk } from "@circle-fin/w3s-pw-web-sdk";
 import WalletConnect from "./WalletConnect";
+import { useEvmWallet } from "./useEvmWallet";
 
 const appId = process.env.NEXT_PUBLIC_CIRCLE_APP_ID as string;
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string;
@@ -44,6 +45,7 @@ export default function HomePage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [analyticsPeriod, setAnalyticsPeriod] = useState<"7D"|"1M"|"ALL">("7D");
   const [eurcBalance, setEurcBalance] = useState<string>("20.00");
+  const evm = useEvmWallet();
 
   useEffect(() => {
     const savedUserToken = getCookie("userToken") as string;
@@ -71,6 +73,25 @@ export default function HomePage() {
   const [copied, setCopied] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [txLoading, setTxLoading] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [signingIn, setSigningIn] = useState(false);
+  const autoInitRef = useRef(false);
+  const prefetchRef = useRef(false);
+  const autoExecRef = useRef(false);
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? window.localStorage.getItem("theme") : null;
+    if (saved === "light" || saved === "dark") { setTheme(saved); return; }
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches) setTheme("dark");
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === "dark" ? "light" : "dark";
+      if (typeof window !== "undefined") window.localStorage.setItem("theme", next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +105,13 @@ export default function HomePage() {
             setLoginError(err.message || "Login failed");
             setLoginResult(null);
             setStatus("Login failed");
+            setDeviceToken("");
+            setDeviceEncryptionKey("");
+            setCookie("deviceToken", "");
+            setCookie("deviceEncryptionKey", "");
+            prefetchRef.current = false;
+            setSigningIn(false);
+            if (typeof window !== "undefined") window.sessionStorage.removeItem("signinPending");
             return;
           }
           setLoginResult({ userToken: result.userToken, encryptionKey: result.encryptionKey });
@@ -91,6 +119,8 @@ export default function HomePage() {
           setCookie("encryptionKey", result.encryptionKey);
           setLoginError(null);
           setStatus("Logged in.");
+          setSigningIn(false);
+          if (typeof window !== "undefined") window.sessionStorage.removeItem("signinPending");
         };
         const restoredAppId = (getCookie("appId") as string) || appId || "";
         const restoredGoogleClientId = (getCookie("google.clientId") as string) || googleClientId || "";
@@ -109,6 +139,8 @@ export default function HomePage() {
           },
         }, onLoginComplete);
         sdkRef.current = sdk;
+        if (restoredDeviceToken) setDeviceToken(restoredDeviceToken);
+        if (restoredDeviceEncryptionKey) setDeviceEncryptionKey(restoredDeviceEncryptionKey);
         const savedUserToken = getCookie("userToken") as string;
         const savedEncryptionKey = getCookie("encryptionKey") as string;
         if (savedUserToken && savedEncryptionKey) {
@@ -186,8 +218,8 @@ export default function HomePage() {
     } catch { setStatus("Failed to load wallet"); }
   };
 
-  const handleCreateDeviceToken = async () => {
-    if (!deviceId) return;
+  const handleCreateDeviceToken = async (): Promise<{ deviceToken: string; deviceEncryptionKey: string } | null> => {
+    if (!deviceId) return null;
     setStatus("Creating device token...");
     try {
       const response = await fetch("/api/endpoints", {
@@ -196,30 +228,34 @@ export default function HomePage() {
         body: JSON.stringify({ action: "createDeviceToken", deviceId }),
       });
       const data = await response.json();
-      if (!response.ok) { setStatus("Failed to create device token"); return; }
+      if (!response.ok) { setStatus("Failed to create device token"); return null; }
       setDeviceToken(data.deviceToken);
       setDeviceEncryptionKey(data.deviceEncryptionKey);
       setCookie("deviceToken", data.deviceToken);
       setCookie("deviceEncryptionKey", data.deviceEncryptionKey);
       setStatus("Device token ready.");
-    } catch { setStatus("Failed to create device token"); }
+      return { deviceToken: data.deviceToken, deviceEncryptionKey: data.deviceEncryptionKey };
+    } catch { setStatus("Failed to create device token"); return null; }
   };
 
-  const handleLoginWithGoogle = () => {
+  const startGoogleSignIn = () => {
     const sdk = sdkRef.current;
-    if (!sdk || !deviceToken || !deviceEncryptionKey) return;
+    if (!sdk || !deviceToken || !deviceEncryptionKey || signingIn) return;
+    setSigningIn(true);
+    setLoginError(null);
+
     setCookie("appId", appId);
     setCookie("google.clientId", googleClientId);
-    setCookie("deviceToken", deviceToken);
-    setCookie("deviceEncryptionKey", deviceEncryptionKey);
     sdk.updateConfigs({
       appSettings: { appId },
       loginConfigs: {
-        deviceToken, deviceEncryptionKey,
+        deviceToken,
+        deviceEncryptionKey,
         google: { clientId: googleClientId, redirectUri: window.location.origin, selectAccountPrompt: true },
       },
     });
-    setStatus("Redirecting to Google...");
+    setStatus("Opening Google...");
+    if (typeof window !== "undefined") window.sessionStorage.setItem("signinPending", "1");
     sdk.performLogin(SocialLoginProvider.GOOGLE);
   };
 
@@ -258,6 +294,11 @@ export default function HomePage() {
   };
 
   const handleBack = () => {
+    autoInitRef.current = false;
+    autoExecRef.current = false;
+    prefetchRef.current = false;
+    setSigningIn(false);
+    if (typeof window !== "undefined") window.sessionStorage.removeItem("signinPending");
     setLoginResult(null);
     setDeviceToken("");
     setDeviceEncryptionKey("");
@@ -309,16 +350,57 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [activeTab, analyticsPeriod, usdcBalance]);
 
-  const primaryWallet = wallets[0];
+  const hasCircleWallet = wallets.length > 0;
+  const evmActive = !hasCircleWallet && evm.isConnected && evm.isArc;
+  const walletMode: "circle" | "evm" | null = hasCircleWallet ? "circle" : evmActive ? "evm" : null;
+  const primaryWallet: Wallet = hasCircleWallet
+    ? wallets[0]
+    : evmActive && evm.address
+      ? { id: "", address: evm.address, blockchain: evm.chainName ?? "Arc Testnet" }
+      : (undefined as unknown as Wallet);
   const isLoggedIn = !!loginResult;
-  const hasWallet = wallets.length > 0;
+  const hasWallet = hasCircleWallet || evmActive;
 
-  const steps = [
-    { label: "Create device token", done: !!deviceToken, action: handleCreateDeviceToken, disabled: !sdkReady || !deviceId || deviceIdLoading || !!deviceToken },
-    { label: "Sign in with Google", done: isLoggedIn, action: handleLoginWithGoogle, disabled: !deviceToken || isLoggedIn },
-    { label: "Initialize account", done: hasWallet || !!challengeId, action: handleInitializeUser, disabled: !isLoggedIn || hasWallet },
-    { label: "Create wallet", done: hasWallet, action: handleExecuteChallenge, disabled: !challengeId || hasWallet },
-  ];
+  useEffect(() => {
+    if (walletMode === "evm") setUsdcBalance(evm.balance);
+    else if (walletMode === null) setUsdcBalance(null);
+  }, [walletMode, evm.balance]);
+
+  useEffect(() => {
+    if (walletMode !== "evm" || !evm.address) return;
+    setTxLoading(true);
+    evm.loadEvmHistory(evm.address)
+      .then((txs) => setTransactions(txs))
+      .catch(() => setTransactions([]))
+      .finally(() => setTxLoading(false));
+  }, [walletMode, evm.address]);
+
+  useEffect(() => {
+    if (!sdkReady || !deviceId || deviceIdLoading) return;
+    if (deviceToken || isLoggedIn || hasWallet) return;
+    if (typeof window !== "undefined" && window.sessionStorage.getItem("signinPending")) return;
+    if (prefetchRef.current) return;
+    prefetchRef.current = true;
+    void handleCreateDeviceToken().then((creds) => {
+      if (!creds) prefetchRef.current = false;
+      else setStatus("Ready to sign in.");
+    });
+  }, [sdkReady, deviceId, deviceIdLoading, deviceToken, isLoggedIn, hasWallet]);
+
+  useEffect(() => {
+    if (!loginResult || hasWallet || challengeId) return;
+    if (autoInitRef.current) return;
+    autoInitRef.current = true;
+    void handleInitializeUser();
+  }, [loginResult, hasWallet, challengeId]);
+
+  useEffect(() => {
+    if (!challengeId || !loginResult || hasWallet) return;
+    if (autoExecRef.current) return;
+    autoExecRef.current = true;
+    handleExecuteChallenge();
+  }, [challengeId, loginResult, hasWallet]);
+
 
   const nav = [
     { id: "dashboard", label: "Dashboard", icon: "ti-layout-dashboard" },
@@ -326,8 +408,6 @@ export default function HomePage() {
     { id: "receive", label: "Receive", icon: "ti-arrow-down" },
     { id: "swap", label: "Swap", icon: "ti-arrows-right-left" },
     { id: "treasury", label: "Treasury", icon: "ti-building-bank" },
-    { id: "garden", label: "Garden", icon: "ti-plant" },
-    { id: "analytics", label: "Analytics", icon: "ti-chart-line" },
     { id: "achievements", label: "Achievements", icon: "ti-trophy" },
     { id: "ai", label: "AI Assistant", icon: "ti-robot" },
     { id: "learn", label: "Learn", icon: "ti-book" },
@@ -335,145 +415,228 @@ export default function HomePage() {
     { id: "about", label: "About", icon: "ti-info-circle" },
   ] as const;
 
+  const visibleNav = nav;
+
+  const C = theme === "dark"
+    ? { bg: "#0d0b18", surf: "#17142a", sub: "#1e1a35", bd: "#2b2646", tx: "#f4f3f9", sec: "#9a95b8", mut: "#6f6a8f", ac: "#afa9ec", acSoft: "#241f4d", brand: "#15122b", onBrand: "#ffffff", shadow: "0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35)" }
+    : { bg: "#f7f5fc", surf: "#ffffff", sub: "#f4f2fc", bd: "#eae6f7", tx: "#26215c", sec: "#8b87a8", mut: "#a7a3bf", ac: "#534ab7", acSoft: "#eeedfe", brand: "#15122b", onBrand: "#ffffff", shadow: "0 1px 2px rgba(38,33,92,.05), 0 8px 24px rgba(38,33,92,.07)" };
+
+  const MONO = "ui-monospace, SFMono-Regular, Menlo, monospace";
+
   const S = {
-    app: { display: "flex", minHeight: "100vh", background: "#f0eff5" } as React.CSSProperties,
-    sidebar: { width: 220, background: "#fff", borderRight: "1px solid #e5e3ed", display: "flex", flexDirection: "column" as const, padding: "24px 0" },
+    app: { display: "flex", flexDirection: "column" as const, minHeight: "100vh", background: C.bg } as React.CSSProperties,
+    topbar: { background: C.surf, borderBottom: `0.5px solid ${C.bd}`, position: "sticky" as const, top: 0, zIndex: 20 },
+    micro: { fontFamily: MONO, fontSize: 11, color: C.sec, letterSpacing: ".06em" } as React.CSSProperties,
+    topbarRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 28px", maxWidth: 1280, margin: "0 auto", width: "100%" },
+    tabstrip: { display: "flex", gap: 2, padding: "0 20px", maxWidth: 1280, margin: "0 auto", width: "100%", overflowX: "auto" as const, scrollbarWidth: "none" as const },
+    ghostBtn: { display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${C.bd}`, color: C.sec, borderRadius: 9, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" as const },
     logo: { display: "flex", alignItems: "center", gap: 10, padding: "0 18px 28px" },
-    logoIcon: { width: 34, height: 34, borderRadius: "50%", background: "#1b1464", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14 },
-    logoText: { fontSize: 15, fontWeight: 800, color: "#1b1464", letterSpacing: "-0.3px" },
-    main: { flex: 1, padding: 32, display: "flex", flexDirection: "column" as const, gap: 20 },
-    balCard: { background: "#1b1464", borderRadius: 16, padding: 24, color: "#fff" },
+    logoIcon: { width: 34, height: 34, borderRadius: "50%", background: C.ac, display: "flex", alignItems: "center", justifyContent: "center", color: theme === "dark" ? "#171622" : "#fff", fontWeight: 800, fontSize: 14 },
+    logoText: { fontSize: 15, fontWeight: 800, color: C.ac, letterSpacing: "-0.3px" },
+    main: { flex: 1, padding: "28px 28px 40px", maxWidth: 1280, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column" as const, gap: 20 },
+    balCard: { background: C.brand, borderRadius: 20, padding: "28px 26px", color: C.onBrand, boxShadow: C.shadow },
     balLabel: { fontSize: 11, fontWeight: 700, opacity: .6, textTransform: "uppercase" as const, letterSpacing: ".08em", marginBottom: 8 },
     balAmount: { fontSize: 38, fontWeight: 800, letterSpacing: "-1.5px", marginBottom: 4 },
     balUsd: { fontSize: 14, opacity: .6 },
     balActions: { display: "flex", gap: 10, marginTop: 20 },
     balBtn: { background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 },
-    balBtnPrimary: { background: "#fff", border: "none", color: "#1b1464", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 },
-    card: { background: "#fff", borderRadius: 14, border: "1px solid #e5e3ed", padding: 20 },
-    cardTitle: { fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 16 },
-    input: { width: "100%", background: "#f8f7fc", border: "1px solid #e5e3ed", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "#1a1a2e", outline: "none" },
-    sendBtn: { width: "100%", background: "#1b1464", color: "#fff", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 700, cursor: "pointer" },
+    balBtnPrimary: { background: C.onBrand, border: "none", color: C.brand, borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 },
+    card: { background: C.surf, borderRadius: 16, border: "none", padding: 20, boxShadow: C.shadow },
+    cardTitle: { fontSize: 15, fontWeight: 700, color: C.tx, marginBottom: 16 },
+    input: { width: "100%", background: C.sub, border: `1px solid ${C.bd}`, borderRadius: 10, padding: "11px 14px", fontSize: 14, color: C.tx, outline: "none" },
+    sendBtn: { width: "100%", background: C.ac, color: theme === "dark" ? "#171622" : "#fff", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 700, cursor: "pointer" },
   };
 
   return (
     <div style={S.app}>
-      <aside style={S.sidebar}>
-        <div style={S.logo}>
-          <div style={S.logoIcon}>H</div>
-          <span style={S.logoText}>HashCrew<br/>Arc Testnet</span>
-        </div>
-        <div style={{ padding: "0 12px 6px", fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".08em" }}>Main</div>
-        {(["dashboard","send","receive","swap"] as const).map((id) => {
-          const item = nav.find(n => n.id === id)!;
-          return <button key={id} onClick={() => setActiveTab(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", fontSize: 13, fontWeight: 600, color: activeTab === id ? "#1b1464" : "#999", background: activeTab === id ? "#f0eff5" : "transparent", borderRight: activeTab === id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left" as const, cursor: "pointer", width: "100%" }}>
-            <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>{item.label}
-          </button>;
-        })}
-        <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".08em" }}>Tools</div>
-        {(["garden","treasury","analytics","ai"] as const).map((id) => {
-          const item = nav.find(n => n.id === id)!;
-          return <button key={id} onClick={() => setActiveTab(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", fontSize: 13, fontWeight: 600, color: activeTab === id ? "#1b1464" : "#999", background: activeTab === id ? "#f0eff5" : "transparent", borderRight: activeTab === id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left" as const, cursor: "pointer", width: "100%" }}>
-            <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>{item.label}
-          </button>;
-        })}
-        <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".08em" }}>Info</div>
-        {(["achievements","learn","history","about"] as const).map((id) => {
-          const item = nav.find(n => n.id === id)!;
-          return <button key={id} onClick={() => setActiveTab(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", fontSize: 13, fontWeight: 600, color: activeTab === id ? "#1b1464" : "#999", background: activeTab === id ? "#f0eff5" : "transparent", borderRight: activeTab === id ? "3px solid #1b1464" : "3px solid transparent", border: "none", textAlign: "left" as const, cursor: "pointer", width: "100%" }}>
-            <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>{item.label}
-          </button>;
-        })}
-        <div style={{ marginTop: "auto", padding: "16px 18px", borderTop: "1px solid #f0eff5" }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#bbb", marginBottom: 4, textTransform: "uppercase", letterSpacing: ".06em" }}>Status</div>
-          <div style={{ fontSize: 12, color: "#888", lineHeight: 1.5, marginBottom: 12 }}>{status}</div>
-          {isLoggedIn && (
-            <button onClick={() => {
-              setLoginResult(null);
-              setWallets([]);
-              setUsdcBalance(null);
-              setDeviceToken("");
-              setDeviceEncryptionKey("");
-              if (typeof window !== "undefined") {
-                window.localStorage.removeItem("deviceId");
-              }
-              setChallengeId(null);
-              setAiMessages([{ role: "ai", text: "Hello! 👋 I'm HashCrew AI, your Web3 assistant. Ask me anything about USDC, Arc, staking or swapping!" }]);
-              if (typeof window !== "undefined") {
-                document.cookie = "userToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                document.cookie = "encryptionKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                document.cookie = "deviceToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                document.cookie = "deviceEncryptionKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-              }
-              setStatus("Signed out");
-            }} style={{ width: "100%", background: "#fce8e8", color: "#c62828", border: "none", borderRadius: 8, padding: "9px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              <i className="ti ti-logout" aria-hidden="true"></i> Sign Out
+      <style>{`@keyframes hcPulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }`}</style>
+      <header style={S.topbar}>
+        <div style={S.topbarRow}>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <div style={S.logoIcon}>H</div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.tx, letterSpacing: "-0.3px", lineHeight: 1.1 }}>HashCrew</div>
+              <div style={{ fontFamily: MONO, fontSize: 10, color: C.sec, marginTop: 2, letterSpacing: ".04em" }}>BUILT ON ARC &middot; POWERED BY CIRCLE</div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, background: C.acSoft, color: C.ac, padding: "6px 12px", borderRadius: 20, letterSpacing: ".04em", whiteSpace: "nowrap" }}>ARC TESTNET</span>
+
+            <button onClick={toggleTheme} aria-label="Toggle theme" style={S.ghostBtn}>
+              <i className={`ti ${theme === "dark" ? "ti-sun" : "ti-moon"}`} aria-hidden="true" style={{ fontSize: 15 }}></i>
+              {theme === "dark" ? "Light" : "Dark"}
             </button>
-          )}
+
+            {hasWallet && <WalletConnect />}
+
+            {isLoggedIn && (
+              <button onClick={() => {
+                  setLoginResult(null);
+                  setWallets([]);
+                  setUsdcBalance(null);
+                  setDeviceToken("");
+                  setDeviceEncryptionKey("");
+                  setChallengeId(null);
+                  if (typeof window !== "undefined") {
+                    window.localStorage.removeItem("deviceId");
+                    window.sessionStorage.removeItem("signinPending");
+                    document.cookie = "userToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    document.cookie = "encryptionKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    document.cookie = "deviceToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    document.cookie = "deviceEncryptionKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                  }
+                  setStatus("Signed out");
+                }} style={{ ...S.ghostBtn, color: "#c62828", borderColor: "#f0c9c9" }}>
+                <i className="ti ti-logout" aria-hidden="true" style={{ fontSize: 15 }}></i>
+                Sign out
+              </button>
+            )}
+          </div>
+
         </div>
-      </aside>
+
+        {hasWallet && (
+          <nav style={S.tabstrip}>
+            {visibleNav.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 7, padding: "13px 14px",
+                  fontSize: 13, fontWeight: 600, whiteSpace: "nowrap",
+                  color: activeTab === item.id ? C.ac : C.sec,
+                  background: "transparent", border: "none",
+                  borderBottom: activeTab === item.id ? `2px solid ${C.ac}` : "2px solid transparent",
+                  cursor: "pointer",
+                }}
+              >
+                <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: 16 }}></i>
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        )}
+      </header>
 
       <main style={S.main}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a1a2e", letterSpacing: "-0.5px", textTransform: "capitalize" }}>{activeTab}</h1>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {isLoggedIn && !hasWallet && (
-              <button onClick={handleBack} style={{ background: "transparent", color: "#888", border: "1px solid #e5e3ed", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>← Back</button>
-            )}
-            <span style={{ fontSize: 11, fontWeight: 700, background: "#e8e6f8", color: "#1b1464", padding: "5px 12px", borderRadius: 20, letterSpacing: ".04em" }}>ARC TESTNET</span>
-        <WalletConnect />
-          </div>
-        </div>
+        {hasWallet && (
+          <h1 style={{ fontSize: 21, fontWeight: 800, color: C.tx, letterSpacing: "-0.4px", textTransform: "capitalize", margin: 0 }}>{activeTab}</h1>
+        )}
 
         {!hasWallet && isLoggedIn && (
           <button onClick={handleBack} style={{ background: "transparent", color: "#888", border: "1px solid #e5e3ed", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 8 }}>← Back</button>
         )}
         {!hasWallet && (
-          <div style={S.card}>
-            <div style={{ ...S.cardTitle, marginBottom: 20 }}>Set up your wallet</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {steps.map((step, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: step.done ? "#f8f7fc" : "#fff", borderRadius: 10, border: "1px solid #e5e3ed" }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: step.done ? "#1b1464" : "#f0eff5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: step.done ? "#fff" : "#999", fontWeight: 700, flexShrink: 0 }}>{step.done ? "✓" : i + 1}</div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: step.done ? "#bbb" : "#1a1a2e", flex: 1, textDecoration: step.done ? "line-through" : "none" }}>{step.label}</span>
-                  {!step.done && (
-                    <button onClick={step.action} disabled={step.disabled} style={{ background: step.disabled ? "#f0eff5" : "#1b1464", color: step.disabled ? "#bbb" : "#fff", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12, fontWeight: 700, cursor: step.disabled ? "not-allowed" : "pointer" }}>
-                      {i === 1 ? "Sign in" : "Start"}
-                    </button>
-                  )}
+          <div style={{ display: "flex", justifyContent: "center", paddingTop: 40 }}>
+            <div style={{ width: "100%", maxWidth: 430 }}>
+
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: "-0.5px", marginBottom: 6 }}>Welcome to HashCrew</div>
+                <div style={{ fontSize: 14, color: C.sec }}>
+                  {signingIn ? "Opening Google..." : isLoggedIn ? "Creating your wallet..." : !deviceToken ? "Preparing secure session..." : "Choose how to sign in"}
                 </div>
-              ))}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                <button
+                  onClick={startGoogleSignIn}
+                  disabled={!deviceToken || signingIn || isLoggedIn}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left" as const,
+                    background: C.surf, border: `1px solid ${C.bd}`, borderRadius: 14, padding: "16px 18px",
+                    cursor: (!deviceToken || signingIn || isLoggedIn) ? "wait" : "pointer",
+                    opacity: !deviceToken ? 0.55 : 1,
+                  }}
+                >
+                  <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className={`ti ${(signingIn || isLoggedIn) ? "ti-loader-2" : "ti-brand-google"}`} aria-hidden="true" style={{ fontSize: 20 }}></i>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.tx }}>Continue with Google</div>
+                    <div style={{ fontSize: 12, color: C.sec, marginTop: 2 }}>{deviceToken ? "Wallet is created for you" : "Preparing..."}</div>
+                  </div>
+                  <i className="ti ti-chevron-right" aria-hidden="true" style={{ fontSize: 16, color: C.mut }}></i>
+                </button>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 14, background: C.surf, border: `1px solid ${C.bd}`, borderRadius: 14, padding: "16px 18px" }}>
+                  <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className="ti ti-wallet" aria-hidden="true" style={{ fontSize: 20 }}></i>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.tx }}>Connect a wallet</div>
+                    <div style={{ fontSize: 12, color: C.sec, marginTop: 2 }}>MetaMask, Rabby, Coinbase</div>
+                  </div>
+                  <WalletConnect />
+                </div>
+
+              </div>
+
+              {loginError && (
+                <div style={{ marginTop: 14, fontSize: 12, color: "#c62828", background: "#fce8e8", padding: "10px 14px", borderRadius: 10, fontWeight: 500 }}>
+                  {loginError}
+                </div>
+              )}
+
+              {(isLoggedIn || signingIn) && (
+                <button onClick={handleBack} style={{ display: "block", margin: "16px auto 0", background: "transparent", border: "none", color: C.sec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  Start over
+                </button>
+              )}
+
+              <div style={{ textAlign: "center", marginTop: 26, fontSize: 11, color: C.mut, lineHeight: 1.7 }}>
+                Arc testnet<br />HashCrew never asks for your recovery phrase
+              </div>
+
             </div>
-            {loginError && <div style={{ marginTop: 12, fontSize: 12, color: "#c62828", background: "#fce8e8", padding: "10px 14px", borderRadius: 8, fontWeight: 500 }}>{loginError}</div>}
           </div>
         )}
 
         {hasWallet && activeTab === "dashboard" && (
           <>
             <div style={S.balCard}>
-              <div style={S.balLabel}>Total Balance</div>
-              <div style={S.balAmount}>{usdcBalance ? parseFloat(usdcBalance).toFixed(2) : "0.00"} USDC</div>
-              <div style={S.balUsd}>≈ ${usdcBalance ? parseFloat(usdcBalance).toFixed(2) : "0.00"} USD</div>
-              <div style={S.balActions}>
-                <button style={S.balBtnPrimary} onClick={() => setActiveTab("send")}><i className="ti ti-arrow-up" aria-hidden="true"></i> Send</button>
-                <button style={S.balBtn} onClick={() => setActiveTab("receive")}><i className="ti ti-arrow-down" aria-hidden="true"></i> Receive</button>
-                <button style={S.balBtn} onClick={() => setActiveTab("history")}><i className="ti ti-list" aria-hidden="true"></i> History</button>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                <span style={{ fontFamily: MONO, fontSize: 11, color: "#8f8ab8", letterSpacing: ".08em" }}>// TOTAL BALANCE</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 10, color: "#afa9ec", background: "#241f4d", padding: "5px 10px", borderRadius: 20, letterSpacing: ".06em" }}>
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#afa9ec", display: "inline-block", animation: "hcPulse 1.8s ease-in-out infinite" }} />
+                  LIVE
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 64, fontWeight: 700, color: "#fff", letterSpacing: "-3px", lineHeight: .95 }}>
+                  {(usdcBalance ? parseFloat(usdcBalance) : 0).toFixed(2).split(".")[0]}
+                </span>
+                <span style={{ fontSize: 34, fontWeight: 700, color: "#6b6690", letterSpacing: "-1.5px" }}>
+                  .{(usdcBalance ? parseFloat(usdcBalance) : 0).toFixed(2).split(".")[1]}
+                </span>
+                <span style={{ fontSize: 17, color: "#afa9ec" }}>USDC</span>
+              </div>
+              <div style={{ display: "flex", gap: 9, marginTop: 26, flexWrap: "wrap" }}>
+                <button onClick={() => setActiveTab("send")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#afa9ec", color: "#15122b", border: "none", fontSize: 13, fontWeight: 700, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-arrow-up" aria-hidden="true"></i> Send</button>
+                <button onClick={() => setActiveTab("receive")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#241f4d", color: "#cecbf6", border: "none", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-arrow-down" aria-hidden="true"></i> Receive</button>
+                <button onClick={() => setActiveTab("history")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#241f4d", color: "#cecbf6", border: "none", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-list" aria-hidden="true"></i> History</button>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
               <div style={S.card}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>EURC Balance</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#2e7d32" }}>{parseFloat(eurcBalance).toFixed(2)}</div>
-                <div style={{ fontSize: 12, color: "#888", marginTop: 4, fontWeight: 500 }}>EUR Stablecoin</div>
+                <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-coin" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
+                <div style={S.micro}>// EURC</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: C.tx, marginTop: 6, letterSpacing: "-.5px" }}>{parseFloat(eurcBalance).toFixed(2)}</div>
               </div>
               <div style={S.card}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>Blockchain</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e" }}>{primaryWallet.blockchain}</div>
-                <div style={{ fontSize: 12, color: "#888", marginTop: 4, fontWeight: 500 }}>Network</div>
+                <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-topology-star" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
+                <div style={S.micro}>// NETWORK</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: C.ac, marginTop: 6, letterSpacing: "-.5px" }}>{primaryWallet.blockchain}</div>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: C.mut, marginTop: 4 }}>T+0 settlement</div>
               </div>
               <div style={S.card}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>Wallet</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", fontFamily: "monospace" }}>{primaryWallet.address.slice(0,8)}...{primaryWallet.address.slice(-6)}</div>
-                <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ marginTop: 8, background: "transparent", border: "1px solid #e5e3ed", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: copied ? "#1b1464" : "#888", cursor: "pointer" }}>{copied ? "Copied!" : "Copy"}</button>
+                <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-wallet" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
+                <div style={S.micro}>// WALLET</div>
+                <div style={{ fontFamily: MONO, fontSize: 15, color: C.tx, marginTop: 9 }}>{primaryWallet.address.slice(0,6)}…{primaryWallet.address.slice(-4)}</div>
+                <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ marginTop: 10, background: "transparent", border: `0.5px solid ${C.bd}`, borderRadius: 8, padding: "5px 11px", fontSize: 11, fontWeight: 600, color: copied ? C.ac : C.sec, cursor: "pointer" }}>{copied ? "Copied" : "Copy"}</button>
               </div>
             </div>
           </>
@@ -499,17 +662,36 @@ export default function HomePage() {
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 12, color: "#888", fontWeight: 500 }}>Network fee</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>~0.004 USDC</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>{walletMode === "evm" ? "Paid separately (gas)" : "~0.004 USDC"}</span>
                   </div>
                   <div style={{ height: 1, background: "#e5e3ed", margin: "8px 0" }}></div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 12, color: "#1a1a2e", fontWeight: 700 }}>Total</span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "#1b1464" }}>{(parseFloat(sendAmount) + 0.004).toFixed(3)} USDC</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "#1b1464" }}>{walletMode === "evm" ? parseFloat(sendAmount).toFixed(2) : (parseFloat(sendAmount) + 0.004).toFixed(3)} USDC</span>
                   </div>
+                  {walletMode === "evm" && (
+                    <div style={{ fontSize: 10, color: "#aaa", marginTop: 8, lineHeight: 1.5 }}>
+                      Gas is paid separately in native USDC (Arc's gas token) via MetaMask.
+                    </div>
+                  )}
                 </div>
               )}
               <button disabled={sending || !sendAddress || !sendAmount} onClick={async () => {
                 setSending(true); setSendMsg(null);
+
+                if (walletMode === "evm") {
+                  try {
+                    await evm.sendUsdc(sendAddress, sendAmount);
+                    setSendMsg({ type: "ok", text: "Transaction submitted! Confirming on-chain..." });
+                    setSendAddress(""); setSendAmount("");
+                    await evm.refetchBalance();
+                  } catch (err: any) {
+                    setSendMsg({ type: "err", text: err?.shortMessage || err?.message || "Transaction rejected" });
+                  }
+                  setSending(false);
+                  return;
+                }
+
                 try {
                   const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "getTransferChallenge", userToken: loginResult?.userToken, walletId: primaryWallet?.id, destinationAddress: sendAddress, amount: sendAmount }) });
                   const data = await res.json();
@@ -524,7 +706,7 @@ export default function HomePage() {
                   });
                 } catch { setSendMsg({ type: "err", text: "Network error" }); setSending(false); }
               }} style={{ ...S.sendBtn, opacity: sending || !sendAddress || !sendAmount ? 0.5 : 1, cursor: sending || !sendAddress || !sendAmount ? "not-allowed" : "pointer" }}>
-                {sending ? "Confirming..." : "Send USDC"}
+                {sending ? (walletMode === "evm" ? "Confirm in MetaMask..." : "Confirming...") : "Send USDC"}
               </button>
               {sendMsg && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: sendMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: sendMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{sendMsg.text}</div>}
             </div>
@@ -710,7 +892,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {hasWallet && activeTab === "garden" && (
+        {hasWallet && activeTab === "treasury" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
               {[
@@ -775,7 +957,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {hasWallet && activeTab === "analytics" && (() => {
+        {hasWallet && activeTab === "dashboard" && (() => {
           const txData = transactions.slice().reverse();
           const labels7 = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
           const labels1M = ["W1","W2","W3","W4"];
@@ -1078,7 +1260,14 @@ export default function HomePage() {
           <div style={S.card}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={S.cardTitle}>Transaction history</div>
-              <button onClick={() => primaryWallet && loginResult && loadTransactions(loginResult.userToken, primaryWallet.id)} style={{ background: "transparent", border: "1px solid #e5e3ed", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#888", cursor: "pointer" }}>Refresh</button>
+              <button onClick={() => {
+                if (walletMode === "evm" && evm.address) {
+                  setTxLoading(true);
+                  evm.loadEvmHistory(evm.address).then((txs) => setTransactions(txs)).catch(() => setTransactions([])).finally(() => setTxLoading(false));
+                } else if (primaryWallet && loginResult) {
+                  loadTransactions(loginResult.userToken, primaryWallet.id);
+                }
+              }} style={{ background: "transparent", border: "1px solid #e5e3ed", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#888", cursor: "pointer" }}>Refresh</button>
             </div>
             {txLoading ? (
               <div style={{ padding: "32px 0", textAlign: "center", color: "#bbb", fontSize: 14 }}>Loading...</div>
@@ -1114,6 +1303,9 @@ export default function HomePage() {
             )}
           </div>
         )}
+        <div style={{ marginTop: "auto", paddingTop: 28, fontSize: 11, color: C.mut }}>
+          {status}
+        </div>
       </main>
     </div>
   );
