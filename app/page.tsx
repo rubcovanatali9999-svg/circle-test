@@ -7,6 +7,7 @@ import type { W3SSdk } from "@circle-fin/w3s-pw-web-sdk";
 import WalletConnect from "./WalletConnect";
 import { useEvmWallet } from "./useEvmWallet";
 import { useBridgeKit, BRIDGE_TESTNET_CHAINS } from "./useBridgeKit";
+import { useBadges, BADGES } from "./useBadges";
 
 const appId = process.env.NEXT_PUBLIC_CIRCLE_APP_ID as string;
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string;
@@ -48,6 +49,7 @@ export default function HomePage() {
   const [eurcBalance, setEurcBalance] = useState<string>("20.00");
   const evm = useEvmWallet();
   const bridgeKit = useBridgeKit();
+  const badges = useBadges();
   const [bridgeFrom, setBridgeFrom] = useState("Ethereum_Sepolia");
   const [bridgeTo, setBridgeTo] = useState("Arc_Testnet");
   const [bridgeAmount, setBridgeAmount] = useState("");
@@ -1165,6 +1167,46 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                  <div style={S.cardTitle}>On-chain badges</div>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: C.ac, background: C.badgeGrad, padding: "4px 10px", borderRadius: 20, letterSpacing: ".04em" }}>REAL NFTs · ARC TESTNET</span>
+                </div>
+                {walletMode !== "evm" ? (
+                  <div style={{ fontSize: 13, color: "#888", lineHeight: 1.6 }}>
+                    Badges mint as real NFTs signed by your own wallet, so this needs a self-custodial connection.
+                    Connect with MetaMask instead of Google to mint badges — everything else stays the same.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+                    {BADGES.map((b) => {
+                      const eligible = b.id === 0 ? hasSent : b.id === 1 ? hasReceived : b.id === 2 ? bridgeKit.status === "success" : isWhale;
+                      const isMinted = !!badges.minted[b.id];
+                      const isMinting = badges.mintingId === b.id;
+                      return (
+                        <div key={b.id} style={{ background: isMinted ? "#e8e6f8" : "#f8f7fc", borderRadius: 12, border: `1px solid ${isMinted ? "#c8c5e8" : "#e5e3ed"}`, padding: 16, opacity: eligible || isMinted ? 1 : 0.5 }}>
+                          <div style={{ fontSize: 28, marginBottom: 8 }}>{eligible || isMinted ? b.icon : "🔒"}</div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: isMinted ? "#1b1464" : "#888", marginBottom: 4 }}>{b.title}</div>
+                          <div style={{ fontSize: 11, color: isMinted ? "#534AB7" : "#bbb", fontWeight: 500, marginBottom: 10 }}>{b.desc}</div>
+                          {isMinted ? (
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "#1b1464", background: "#fff", padding: "3px 8px", borderRadius: 20, display: "inline-block" }}>Minted ✓</div>
+                          ) : eligible ? (
+                            <button disabled={isMinting} onClick={() => badges.mint(b.id)} style={{ ...S.sendBtn, padding: "7px 12px", fontSize: 12, opacity: isMinting ? 0.6 : 1, cursor: isMinting ? "wait" : "pointer" }}>
+                              {isMinting ? "Confirm in MetaMask..." : "Mint badge"}
+                            </button>
+                          ) : (
+                            <div style={{ fontSize: 11, color: "#bbb", fontWeight: 600 }}>Not eligible yet</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {badges.error && (
+                  <div style={{ fontSize: 12, padding: "10px 14px", borderRadius: 10, background: "#fce8e8", color: "#c62828", fontWeight: 600, marginTop: 12 }}>{badges.error}</div>
+                )}
               </div>
             </div>
           );
