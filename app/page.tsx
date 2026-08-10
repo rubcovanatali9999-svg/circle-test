@@ -1270,7 +1270,7 @@ export default function HomePage() {
                   <div style={{ fontSize: 13, opacity: .6, fontWeight: 500 }}>Arc Testnet Wallet</div>
                 </div>
               </div>
-              <div style={{ fontSize: 14, lineHeight: 1.7, opacity: .8, fontWeight: 500 }}>A full-featured Web3 wallet built on Arc Testnet using Circle's USDC, designed to showcase the power of stablecoin payments and agentic commerce.</div>
+              <div style={{ fontSize: 14, lineHeight: 1.7, opacity: .8, fontWeight: 500 }}>A Web3 wallet on Arc Testnet with two ways in: sign in with Google for a Circle-managed wallet with no seed phrase, or connect MetaMask for full self-custody — same balance, send, and history either way. Bridge USDC across chains via Circle's CCTP, and mint real on-chain NFT badges for milestones on your own wallet.</div>
               <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
                 <a href="https://hashcrewtest.vercel.app" target="_blank" rel="noreferrer" style={{ background: "#fff", color: "#1b1464", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>🌐 Live Demo</a>
                 <a href="https://github.com/rubcovanatali9999-svg/circle-test" target="_blank" rel="noreferrer" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>GitHub →</a>
@@ -1280,13 +1280,14 @@ export default function HomePage() {
               <div style={S.cardTitle}>Features</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {[
-                  { icon: "🔐", title: "Google OAuth Login", desc: "Seamless social login via Circle SDK" },
+                  { icon: "🔐", title: "Google OAuth Login", desc: "No-seed-phrase wallet via Circle SDK" },
+                  { icon: "🦊", title: "MetaMask Login", desc: "Self-custodial mode, real on-chain balance" },
                   { icon: "💸", title: "Send USDC", desc: "Real on-chain transactions on Arc" },
-                  { icon: "🔄", title: "Swap USDC ↔ EURC", desc: "Swap between stablecoins" },
-                  { icon: "🌱", title: "Staking Garden", desc: "Gamified staking experience" },
+                  { icon: "🌉", title: "CCTP Bridge", desc: "Move USDC across chains via Circle Bridge Kit" },
+                  { icon: "🏆", title: "On-chain Badges", desc: "Real NFTs minted from your own wallet" },
+                  { icon: "🌱", title: "Treasury & Garden", desc: "Automation rules + gamified staking" },
                   { icon: "📊", title: "Analytics", desc: "Balance history with charts" },
-                  { icon: "🏆", title: "Achievements", desc: "Earn badges for milestones" },
-                  { icon: "🤖", title: "AI Assistant", desc: "Built-in Web3 helper" },
+                  { icon: "🤖", title: "AI Assistant", desc: "Natural-language send, powered by Claude" },
                   { icon: "📚", title: "Learn", desc: "Arc House community content" },
                 ].map((f, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px", background: "#f8f7fc", borderRadius: 10, border: "1px solid #e5e3ed" }}>
@@ -1302,14 +1303,19 @@ export default function HomePage() {
             <div style={S.card}>
               <div style={S.cardTitle}>Tech Stack</div>
               <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
-                {["Next.js 16", "TypeScript", "React", "Circle SDK", "Arc Testnet", "USDC", "EURC", "Google OAuth", "Vercel"].map((t, i) => (
+                {["Next.js 16", "TypeScript", "React", "Circle SDK", "Circle Bridge Kit", "wagmi + viem", "Solidity / ERC-721", "Arc Testnet", "USDC", "Google OAuth", "Vercel"].map((t, i) => (
                   <span key={i} style={{ fontSize: 12, fontWeight: 700, background: "#e8e6f8", color: "#1b1464", padding: "5px 12px", borderRadius: 20 }}>{t}</span>
                 ))}
               </div>
             </div>
             <div style={S.card}>
               <div style={S.cardTitle}>Why Arc?</div>
-              <div style={{ fontSize: 13, color: "#888", lineHeight: 1.7, fontWeight: 500 }}>Arc is built for fast, cheap stablecoin payments — perfect for the agentic commerce future. HashCrew demonstrates how AI agents could one day manage wallets, make payments, and interact with DeFi protocols autonomously.</div>
+              <div style={{ fontSize: 13, color: "#888", lineHeight: 1.7, fontWeight: 500 }}>Arc is Circle's Layer-1 built for stablecoin-native finance — USDC as native gas, sub-second finality, and CCTP for moving USDC natively across chains without wrapped tokens. HashCrew is built to work equally well for Web2-native users (Google login, no seed phrase) and Web3-native users (bring your own wallet), on the same rails.</div>
+            </div>
+            <div style={S.card}>
+              <div style={S.cardTitle}>On-chain contracts</div>
+              <div style={{ fontSize: 13, color: "#888", lineHeight: 1.7, fontWeight: 500, marginBottom: 10 }}>HashCrew Badges — a fully on-chain ERC-721 (artwork and metadata generated in the contract itself, no external hosting).</div>
+              <a href="https://testnet.arcscan.app/address/0xb3d15388Ce100Ae18937CFFfdADcec7D6b523800" target="_blank" rel="noreferrer" style={{ fontSize: 12, fontFamily: "monospace", color: "#1b1464", fontWeight: 700, textDecoration: "none", background: "#f8f7fc", border: "1px solid #e5e3ed", borderRadius: 8, padding: "8px 12px", display: "inline-block" }}>0xb3d1...3800 ↗ View on ArcScan</a>
             </div>
             <div style={{ ...S.card, textAlign: "center" as const }}>
               <div style={{ fontSize: 13, color: "#888", fontWeight: 500 }}>Built with ❤️ for the Arc ecosystem</div>

@@ -1,63 +1,76 @@
-# HashCrew Arc Testnet Wallet 🚀
+# HashCrew
 
-A full-featured Web3 wallet built on **Arc Testnet** using **Circle's USDC**, designed to showcase the power of stablecoin payments and agentic commerce.
+A Web3 wallet on **Arc Testnet** (Circle's stablecoin-native Layer-1) with two ways in — social login with no seed phrase, or full self-custody with your own wallet — both backed by real on-chain balances, transfers, and history.
 
-🌐 **Live Demo**: https://hashcrewtest.vercel.app
+🌐 **Live demo:** [hashcrewtest.vercel.app](https://hashcrewtest.vercel.app)
 
 ---
 
-## What is this?
+## What it does
 
-HashCrew is a next-generation Web3 wallet that combines real blockchain transactions with gamified DeFi experiences. Built for the Arc ecosystem, it demonstrates how everyday users can interact with stablecoins in a fun, intuitive way.
+**Two login modes, one wallet experience**
+- **Continue with Google** — creates a Circle-managed wallet via the Circle User-Controlled Wallets SDK. No seed phrase, no browser extension.
+- **Connect a wallet** — MetaMask, Rabby, or any injected EVM wallet, for people who already hold their own keys. Balance, send, and history are all read directly from the Arc Testnet blockchain in this mode (no Circle API involved).
 
-## Features
+**Send & receive USDC**
+Real on-chain USDC transfers on Arc Testnet, with a Quick Send/Receive panel right on the dashboard.
 
-| Feature | Description |
-|---------|-------------|
-| 🔐 **Google OAuth Login** | Seamless social login using Circle's User Controlled Wallets SDK |
-| 💸 **Send USDC** | Real on-chain transactions on Arc Testnet with SDK challenge confirmation |
-| 🔄 **Swap USDC ↔ EURC** | Swap between USD and EUR stablecoins |
-| 🌱 **Staking Garden** | Gamified staking — plant seeds and watch them grow over time |
-| 📊 **Analytics** | Balance history with neon purple charts |
-| 🏆 **Achievements** | Earn badges for sending, staking, swapping and more |
-| 🤖 **AI Agent** | Claude-powered agent that understands natural language and executes transactions autonomously |
-| 🏦 **Treasury Management** | Automated rules for balance management |
-| 📚 **Learn** | Curated content from Arc House community |
-| 📜 **Transaction History** | Full history of all on-chain transactions |
+**CCTP Bridge**
+Move USDC between Arc Testnet and other EVM testnets (Ethereum Sepolia, Base Sepolia, Avalanche Fuji, Arbitrum Sepolia, OP Sepolia, Polygon Amoy) using Circle's [Bridge Kit](https://developers.circle.com/bridge-kit) — native burn-and-mint via CCTP, no wrapped tokens. Live step-by-step progress (approve → burn → attestation → mint) shown in the UI.
 
-## Tech Stack
+**On-chain NFT achievement badges**
+A real ERC-721 contract ([`HashCrewBadges`](https://testnet.arcscan.app/address/0xb3d15388Ce100Ae18937CFFfdADcec7D6b523800)), fully on-chain — artwork and metadata are generated inside the contract itself as base64-encoded SVG, with no external hosting or IPFS. Users mint their own badge once they hit a real, verifiable milestone (first send, first receive, bridged via CCTP, holding 100+ USDC).
 
-- **Frontend**: Next.js 16, TypeScript, React
-- **Blockchain**: Arc Testnet (Circle)
-- **Wallet SDK**: @circle-fin/w3s-pw-web-sdk
-- **Auth**: Google OAuth via Circle Social Login
-- **Tokens**: USDC, EURC
-- **Deploy**: Vercel
+**AI Assistant**
+Natural-language commands (powered by Claude) that parse intent and pre-fill the send form — "send 5 USDC to 0x..." fills in the recipient and amount for you to confirm.
 
-## How it works
+**Treasury Management & Staking Garden**
+Automation rules and a gamified staking visualization, running on local state for now.
 
-1. User signs in with Google → Circle creates a blockchain wallet
-2. Wallet is tied to the user's Google account (no seed phrases!)
-3. Transactions are confirmed via Circle's SDK challenge system
-4. All data is stored on Arc Testnet blockchain
+**Analytics**
+Balance history chart on the dashboard.
 
-## Why Arc?
+**Arc House**
+Live content feed from Circle's Arc builder community.
 
-Arc is built for fast, cheap stablecoin payments — perfect for the agentic commerce future. HashCrew demonstrates how AI agents could one day manage wallets, make payments, and interact with DeFi protocols autonomously.
+---
 
-## Getting Started
+## Tech stack
+
+- **Framework:** Next.js 16, TypeScript, React 19
+- **Wallets:** Circle User-Controlled Wallets SDK (`@circle-fin/w3s-pw-web-sdk`) for social login, [wagmi](https://wagmi.sh) + [viem](https://viem.sh) for MetaMask/EVM wallets
+- **Cross-chain:** [Circle Bridge Kit](https://developers.circle.com/bridge-kit) (`@circle-fin/bridge-kit`) for CCTP bridging
+- **Smart contracts:** Solidity, OpenZeppelin ERC-721, deployed on Arc Testnet
+- **Chain:** [Arc Testnet](https://docs.arc.io) — Circle's EVM-compatible L1 with USDC as native gas
+- **Deployment:** Vercel
+
+## Deployed contracts
+
+| Contract | Address | Explorer |
+|---|---|---|
+| HashCrewBadges (ERC-721) | `0xb3d15388Ce100Ae18937CFFfdADcec7D6b523800` | [ArcScan ↗](https://testnet.arcscan.app/address/0xb3d15388Ce100Ae18937CFFfdADcec7D6b523800) |
+
+## Getting started
 
 ```bash
-git clone https://github.com/rubcovanatali9999-svg/circle-test
+git clone https://github.com/rubcovanatali9999-svg/circle-test.git
 cd circle-test
 npm install
-cp .env.local.example .env.local
-# Add your Circle API Key, Google Client ID, and Circle App ID
+```
+
+Create a `.env.local` with:
+
+```
+NEXT_PUBLIC_CIRCLE_APP_ID=...
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=...
+```
+
+Then:
+
+```bash
 npm run dev
 ```
 
-## Built by
+---
 
-Natali Rubtsova — [@rubcovanatali9999-svg](https://github.com/rubcovanatali9999-svg)
-
-Built for the Arc ecosystem with ❤️
+Built for the Arc / Circle ecosystem, by Natali Rubtsova.
