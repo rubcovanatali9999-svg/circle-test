@@ -27,7 +27,7 @@ export default function HomePage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Initializing...");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "send" | "receive" | "swap" | "treasury" | "garden" | "analytics" | "achievements" | "ai" | "learn" | "history" | "about">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "bridge" | "treasury" | "achievements" | "ai" | "learn" | "history" | "about">("dashboard");
   const [rules, setRules] = useState<{id:number; type:string; threshold:string; action:string; amount:string; address:string; active:boolean}[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("treasury_rules");
@@ -358,7 +358,7 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    if (activeTab !== "analytics") return;
+    if (activeTab !== "dashboard") return;
     const timer = setTimeout(() => {
       const canvas = document.getElementById("analyticsChart") as HTMLCanvasElement;
       if (!canvas) return;
