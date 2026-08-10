@@ -440,10 +440,7 @@ export default function HomePage() {
 
   const nav = [
     { id: "dashboard", label: "Dashboard", icon: "ti-layout-dashboard" },
-    { id: "send", label: "Send", icon: "ti-arrow-up" },
-    { id: "receive", label: "Receive", icon: "ti-arrow-down" },
     { id: "bridge", label: "Bridge", icon: "ti-arrows-exchange" },
-    { id: "swap", label: "Swap", icon: "ti-arrows-right-left" },
     { id: "treasury", label: "Treasury", icon: "ti-building-bank" },
     { id: "achievements", label: "Achievements", icon: "ti-trophy" },
     { id: "ai", label: "AI Assistant", icon: "ti-robot" },
@@ -455,8 +452,8 @@ export default function HomePage() {
   const visibleNav = nav;
 
   const C = theme === "dark"
-    ? { bg: "#0d0b18", surf: "#17142a", sub: "#1e1a35", bd: "#2b2646", tx: "#f4f3f9", sec: "#9a95b8", mut: "#6f6a8f", ac: "#afa9ec", acSoft: "#241f4d", brand: "#15122b", onBrand: "#ffffff", shadow: "0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35)" }
-    : { bg: "#f7f5fc", surf: "#ffffff", sub: "#f4f2fc", bd: "#eae6f7", tx: "#26215c", sec: "#8b87a8", mut: "#a7a3bf", ac: "#534ab7", acSoft: "#eeedfe", brand: "#15122b", onBrand: "#ffffff", shadow: "0 1px 2px rgba(38,33,92,.05), 0 8px 24px rgba(38,33,92,.07)" };
+    ? { bg: "#0d0b18", surf: "#17142a", sub: "#1e1a35", bd: "#2b2646", tx: "#f4f3f9", sec: "#9a95b8", mut: "#6f6a8f", ac: "#afa9ec", acSoft: "#241f4d", brand: "#15122b", onBrand: "#ffffff", shadow: "0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35)", grad: "linear-gradient(120deg, #8b7bf7 0%, #5b8cf5 100%)", glow: "0 8px 24px rgba(107,109,244,.35)", badgeGrad: "linear-gradient(135deg, rgba(139,123,247,.22), rgba(91,140,245,.22))" }
+    : { bg: "#f7f5fc", surf: "#ffffff", sub: "#f4f2fc", bd: "#eae6f7", tx: "#26215c", sec: "#8b87a8", mut: "#a7a3bf", ac: "#534ab7", acSoft: "#eeedfe", brand: "#15122b", onBrand: "#ffffff", shadow: "0 1px 2px rgba(38,33,92,.05), 0 8px 24px rgba(38,33,92,.07)", grad: "linear-gradient(120deg, #7c6fee 0%, #4f8cff 100%)", glow: "0 8px 20px rgba(83,74,183,.25)", badgeGrad: "linear-gradient(135deg, rgba(124,111,238,.12), rgba(79,140,255,.12))" };
 
   const MONO = "ui-monospace, SFMono-Regular, Menlo, monospace";
 
@@ -468,7 +465,7 @@ export default function HomePage() {
     tabstrip: { display: "flex", gap: 2, padding: "0 20px", maxWidth: 1280, margin: "0 auto", width: "100%", overflowX: "auto" as const, scrollbarWidth: "none" as const },
     ghostBtn: { display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${C.bd}`, color: C.sec, borderRadius: 9, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" as const },
     logo: { display: "flex", alignItems: "center", gap: 10, padding: "0 18px 28px" },
-    logoIcon: { width: 34, height: 34, borderRadius: "50%", background: C.ac, display: "flex", alignItems: "center", justifyContent: "center", color: theme === "dark" ? "#171622" : "#fff", fontWeight: 800, fontSize: 14 },
+    logoIcon: { width: 34, height: 34, borderRadius: "50%", background: C.grad, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14, boxShadow: C.glow },
     logoText: { fontSize: 15, fontWeight: 800, color: C.ac, letterSpacing: "-0.3px" },
     main: { flex: 1, padding: "28px 28px 40px", maxWidth: 1280, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column" as const, gap: 20 },
     balCard: { background: C.brand, borderRadius: 20, padding: "28px 26px", color: C.onBrand, boxShadow: C.shadow },
@@ -478,10 +475,10 @@ export default function HomePage() {
     balActions: { display: "flex", gap: 10, marginTop: 20 },
     balBtn: { background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 },
     balBtnPrimary: { background: C.onBrand, border: "none", color: C.brand, borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 },
-    card: { background: C.surf, borderRadius: 16, border: "none", padding: 20, boxShadow: C.shadow },
+    card: { background: C.surf, borderRadius: 16, border: `1px solid ${C.bd}`, padding: 20, boxShadow: C.shadow },
     cardTitle: { fontSize: 15, fontWeight: 700, color: C.tx, marginBottom: 16 },
     input: { width: "100%", background: C.sub, border: `1px solid ${C.bd}`, borderRadius: 10, padding: "11px 14px", fontSize: 14, color: C.tx, outline: "none" },
-    sendBtn: { width: "100%", background: C.ac, color: theme === "dark" ? "#171622" : "#fff", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 700, cursor: "pointer" },
+    sendBtn: { width: "100%", background: C.grad, color: "#fff", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: C.glow },
   };
 
   return (
@@ -490,6 +487,18 @@ export default function HomePage() {
         @keyframes hcPulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
         .hc-dash-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
         @media (max-width: 860px) { .hc-dash-grid { grid-template-columns: 1fr; } }
+
+        @keyframes hcAurora { 0%,100% { opacity: .85; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.1); } }
+        @keyframes hcAurora2 { 0%,100% { opacity: .5; transform: translate(20%, -10%) scale(1); } 50% { opacity: .8; transform: translate(20%, -10%) scale(1.15); } }
+        @keyframes hcFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        .hc-landing { position: relative; display: flex; justify-content: center; padding: 68px 20px 44px; overflow: visible; border-radius: 28px; background: radial-gradient(120% 100% at 50% -10%, #211c42 0%, #0a0818 55%); isolation: isolate; }
+        .hc-landing-glow { position: absolute; top: -160px; left: 50%; width: 620px; height: 620px; background: radial-gradient(circle, rgba(147,124,255,.65) 0%, rgba(79,140,255,.32) 45%, transparent 72%); filter: blur(50px); animation: hcAurora 9s ease-in-out infinite; pointer-events: none; z-index: 0; }
+        .hc-landing-glow2 { position: absolute; top: 40px; right: -80px; width: 360px; height: 360px; background: radial-gradient(circle, rgba(79,200,255,.35) 0%, transparent 70%); filter: blur(60px); animation: hcAurora2 11s ease-in-out infinite; pointer-events: none; z-index: 0; }
+        .hc-landing-content { position: relative; z-index: 1; width: 100%; max-width: 440px; animation: hcFadeUp .5s ease both; }
+        .hc-landing-title { font-size: 58px; font-weight: 800; letter-spacing: -2.6px; line-height: .98; margin: 0 0 12px; background: linear-gradient(120deg, #e4defe 0%, #a99bff 38%, #6fa8ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        @media (max-width: 520px) { .hc-landing-title { font-size: 42px; letter-spacing: -1.6px; } .hc-landing-glow { width: 420px; height: 420px; top: -120px; } }
+        .hc-landing-cta { transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+        .hc-landing-cta:hover:not(:disabled) { transform: translateY(-2px); }
       `}</style>
       <header style={S.topbar}>
         <div style={S.topbarRow}>
@@ -503,7 +512,7 @@ export default function HomePage() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, background: C.acSoft, color: C.ac, padding: "6px 12px", borderRadius: 20, letterSpacing: ".04em", whiteSpace: "nowrap" }}>ARC TESTNET</span>
+            <span style={{ fontSize: 11, fontWeight: 700, background: C.badgeGrad, color: C.ac, padding: "6px 12px", borderRadius: 20, letterSpacing: ".04em", whiteSpace: "nowrap" }}>ARC TESTNET</span>
 
             <button onClick={toggleTheme} aria-label="Toggle theme" style={S.ghostBtn}>
               <i className={`ti ${theme === "dark" ? "ti-sun" : "ti-moon"}`} aria-hidden="true" style={{ fontSize: 15 }}></i>
@@ -550,6 +559,7 @@ export default function HomePage() {
                   color: activeTab === item.id ? C.ac : C.sec,
                   background: "transparent", border: "none",
                   borderBottom: activeTab === item.id ? `2px solid ${C.ac}` : "2px solid transparent",
+                  textShadow: activeTab === item.id ? (theme === "dark" ? "0 0 16px rgba(175,169,236,.5)" : "none") : "none",
                   cursor: "pointer",
                 }}
               >
@@ -570,45 +580,56 @@ export default function HomePage() {
           <button onClick={handleBack} style={{ background: "transparent", color: "#888", border: "1px solid #e5e3ed", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 8 }}>← Back</button>
         )}
         {!hasWallet && (
-          <div style={{ display: "flex", justifyContent: "center", paddingTop: 40 }}>
-            <div style={{ width: "100%", maxWidth: 430 }}>
+          <div className="hc-landing">
+            <div className="hc-landing-glow" aria-hidden="true" />
+            <div className="hc-landing-glow2" aria-hidden="true" />
+            <div className="hc-landing-content">
 
-              <div style={{ textAlign: "center", marginBottom: 28 }}>
-                <div style={{ fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: "-0.5px", marginBottom: 6 }}>Welcome to HashCrew</div>
-                <div style={{ fontSize: 14, color: C.sec }}>
-                  {signingIn ? "Opening Google..." : isLoggedIn ? "Creating your wallet..." : !deviceToken ? "Preparing secure session..." : "Choose how to sign in"}
+              <div style={{ textAlign: "center", marginBottom: 34 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 700, color: "#c3b9ff", background: "rgba(147,124,255,.14)", border: "1px solid rgba(147,124,255,.3)", padding: "6px 14px", borderRadius: 20, letterSpacing: ".07em", marginBottom: 20 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#93e6b3", display: "inline-block", animation: "hcPulse 1.8s ease-in-out infinite" }} />
+                  ARC TESTNET
+                </span>
+                <div className="hc-landing-title">HashCrew</div>
+                <div style={{ fontSize: 16, color: "#a79fd1", fontWeight: 500 }}>
+                  {signingIn ? "Opening Google..." : isLoggedIn ? "Creating your wallet..." : !deviceToken ? "Preparing secure session..." : "The wallet that fits how you already move"}
                 </div>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
                 <button
+                  className="hc-landing-cta"
                   onClick={startGoogleSignIn}
                   disabled={!deviceToken || signingIn || isLoggedIn}
                   style={{
-                    display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left" as const,
-                    background: C.surf, border: `1px solid ${C.bd}`, borderRadius: 14, padding: "16px 18px",
+                    display: "flex", alignItems: "center", gap: 16, width: "100%", textAlign: "left" as const,
+                    background: "linear-gradient(120deg, #8b7bf7 0%, #5b8cf5 100%)", border: "none", borderRadius: 18, padding: "20px 22px",
                     cursor: (!deviceToken || signingIn || isLoggedIn) ? "wait" : "pointer",
                     opacity: !deviceToken ? 0.55 : 1,
+                    boxShadow: "0 10px 30px rgba(107,109,244,.35)",
                   }}
                 >
-                  <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <i className={`ti ${(signingIn || isLoggedIn) ? "ti-loader-2" : "ti-brand-google"}`} aria-hidden="true" style={{ fontSize: 20 }}></i>
+                  <div style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 13, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className={`ti ${(signingIn || isLoggedIn) ? "ti-loader-2" : "ti-brand-google"}`} aria-hidden="true" style={{ fontSize: 22, color: "#fff" }}></i>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.tx }}>Continue with Google</div>
-                    <div style={{ fontSize: 12, color: C.sec, marginTop: 2 }}>{deviceToken ? "Wallet is created for you" : "Preparing..."}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>Continue with Google</div>
+                    <div style={{ fontSize: 12.5, color: "rgba(255,255,255,.8)", marginTop: 3, fontWeight: 500 }}>{deviceToken ? "No seed phrase — your wallet is ready instantly" : "Preparing..."}</div>
                   </div>
-                  <i className="ti ti-chevron-right" aria-hidden="true" style={{ fontSize: 16, color: C.mut }}></i>
+                  <i className="ti ti-chevron-right" aria-hidden="true" style={{ fontSize: 18, color: "rgba(255,255,255,.85)" }}></i>
                 </button>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 14, background: C.surf, border: `1px solid ${C.bd}`, borderRadius: 14, padding: "16px 18px" }}>
-                  <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <i className="ti ti-wallet" aria-hidden="true" style={{ fontSize: 20 }}></i>
+                <div
+                  className="hc-landing-cta"
+                  style={{ display: "flex", alignItems: "center", gap: 16, background: "rgba(255,255,255,.045)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: "20px 22px", backdropFilter: "blur(6px)" }}
+                >
+                  <div style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 13, background: "rgba(147,124,255,.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className="ti ti-wallet" aria-hidden="true" style={{ fontSize: 22, color: "#b3a4ff" }}></i>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.tx }}>Connect a wallet</div>
-                    <div style={{ fontSize: 12, color: C.sec, marginTop: 2 }}>MetaMask, Rabby, Coinbase</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#f4f2ff" }}>Connect a wallet</div>
+                    <div style={{ fontSize: 12.5, color: "#a79fd1", marginTop: 3, fontWeight: 500 }}>MetaMask, Rabby, Coinbase</div>
                   </div>
                   <WalletConnect />
                 </div>
@@ -616,19 +637,19 @@ export default function HomePage() {
               </div>
 
               {loginError && (
-                <div style={{ marginTop: 14, fontSize: 12, color: "#c62828", background: "#fce8e8", padding: "10px 14px", borderRadius: 10, fontWeight: 500 }}>
+                <div style={{ marginTop: 16, fontSize: 12.5, color: "#ffb4b4", background: "rgba(255,80,80,.12)", border: "1px solid rgba(255,80,80,.25)", padding: "12px 16px", borderRadius: 12, fontWeight: 500 }}>
                   {loginError}
                 </div>
               )}
 
               {(isLoggedIn || signingIn) && (
-                <button onClick={handleBack} style={{ display: "block", margin: "16px auto 0", background: "transparent", border: "none", color: C.sec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <button onClick={handleBack} style={{ display: "block", margin: "18px auto 0", background: "transparent", border: "none", color: "#a79fd1", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
                   Start over
                 </button>
               )}
 
-              <div style={{ textAlign: "center", marginTop: 26, fontSize: 11, color: C.mut, lineHeight: 1.7 }}>
-                Arc testnet<br />HashCrew never asks for your recovery phrase
+              <div style={{ textAlign: "center", marginTop: 32, fontSize: 11.5, color: "#736c94", lineHeight: 1.8, fontWeight: 500 }}>
+                Built on Arc, secured by Circle<br />HashCrew never asks for your recovery phrase
               </div>
 
             </div>
@@ -656,26 +677,25 @@ export default function HomePage() {
                   <span style={{ fontSize: 17, color: "#afa9ec" }}>USDC</span>
                 </div>
                 <div style={{ display: "flex", gap: 9, marginTop: 26, flexWrap: "wrap" }}>
-                  <button onClick={() => setActiveTab("send")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#afa9ec", color: "#15122b", border: "none", fontSize: 13, fontWeight: 700, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-arrow-up" aria-hidden="true"></i> Send</button>
-                  <button onClick={() => setActiveTab("receive")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#241f4d", color: "#cecbf6", border: "none", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-arrow-down" aria-hidden="true"></i> Receive</button>
                   <button onClick={() => setActiveTab("history")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#241f4d", color: "#cecbf6", border: "none", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-list" aria-hidden="true"></i> History</button>
+                  <button onClick={() => setActiveTab("bridge")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#241f4d", color: "#cecbf6", border: "none", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-arrows-exchange" aria-hidden="true"></i> Bridge</button>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
                 <div style={S.card}>
-                  <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-coin" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: C.badgeGrad, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-coin" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
                   <div style={S.micro}>// EURC</div>
                   <div style={{ fontSize: 26, fontWeight: 700, color: C.tx, marginTop: 6, letterSpacing: "-.5px" }}>{parseFloat(eurcBalance).toFixed(2)}</div>
                 </div>
                 <div style={S.card}>
-                  <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-topology-star" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: C.badgeGrad, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-topology-star" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
                   <div style={S.micro}>// NETWORK</div>
                   <div style={{ fontSize: 26, fontWeight: 700, color: C.ac, marginTop: 6, letterSpacing: "-.5px" }}>{primaryWallet.blockchain}</div>
                   <div style={{ fontFamily: MONO, fontSize: 11, color: C.mut, marginTop: 4 }}>T+0 settlement</div>
                 </div>
                 <div style={S.card}>
-                  <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-wallet" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: C.badgeGrad, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-wallet" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
                   <div style={S.micro}>// WALLET</div>
                   <div style={{ fontFamily: MONO, fontSize: 15, color: C.tx, marginTop: 9 }}>{primaryWallet.address.slice(0,6)}…{primaryWallet.address.slice(-4)}</div>
                   <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ marginTop: 10, background: "transparent", border: `0.5px solid ${C.bd}`, borderRadius: 8, padding: "5px 11px", fontSize: 11, fontWeight: 600, color: copied ? C.ac : C.sec, cursor: "pointer" }}>{copied ? "Copied" : "Copy"}</button>
@@ -706,60 +726,6 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {hasWallet && activeTab === "send" && (
-          <div style={{ ...S.card, maxWidth: 500 }}>
-            <div style={S.cardTitle}>Send USDC</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Recipient address</label>
-                <input value={sendAddress} onChange={e => setSendAddress(e.target.value)} placeholder="0x..." style={S.input} />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Amount (USDC)</label>
-                <input value={sendAmount} onChange={e => setSendAmount(e.target.value)} type="number" placeholder="0.00" style={S.input} />
-              </div>
-              {sendAmount && parseFloat(sendAmount) > 0 && (
-                <div style={{ background: "#f8f7fc", borderRadius: 10, padding: "12px 14px", border: "1px solid #e5e3ed" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, color: "#888", fontWeight: 500 }}>Amount</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>{parseFloat(sendAmount).toFixed(2)} USDC</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, color: "#888", fontWeight: 500 }}>Network fee</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>{walletMode === "evm" ? "Paid separately (gas)" : "~0.004 USDC"}</span>
-                  </div>
-                  <div style={{ height: 1, background: "#e5e3ed", margin: "8px 0" }}></div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12, color: "#1a1a2e", fontWeight: 700 }}>Total</span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "#1b1464" }}>{walletMode === "evm" ? parseFloat(sendAmount).toFixed(2) : (parseFloat(sendAmount) + 0.004).toFixed(3)} USDC</span>
-                  </div>
-                  {walletMode === "evm" && (
-                    <div style={{ fontSize: 10, color: "#aaa", marginTop: 8, lineHeight: 1.5 }}>
-                      Gas is paid separately in native USDC (Arc's gas token) via MetaMask.
-                    </div>
-                  )}
-                </div>
-              )}
-              <button disabled={sending || !sendAddress || !sendAmount} onClick={handleSendUsdc} style={{ ...S.sendBtn, opacity: sending || !sendAddress || !sendAmount ? 0.5 : 1, cursor: sending || !sendAddress || !sendAmount ? "not-allowed" : "pointer" }}>
-                {sending ? (walletMode === "evm" ? "Confirm in MetaMask..." : "Confirming...") : "Send USDC"}
-              </button>
-              {sendMsg && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: sendMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: sendMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{sendMsg.text}</div>}
-            </div>
-          </div>
-        )}
-
-        {hasWallet && activeTab === "receive" && (
-          <div style={{ ...S.card, maxWidth: 500 }}>
-            <div style={S.cardTitle}>Receive USDC</div>
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 16, fontWeight: 500 }}>Share your wallet address to receive USDC on Arc Testnet</div>
-            <div style={{ background: "#f8f7fc", border: "1px solid #e5e3ed", borderRadius: 10, padding: "14px 16px", fontFamily: "monospace", fontSize: 13, color: "#1a1a2e", wordBreak: "break-all", marginBottom: 14 }}>{primaryWallet.address}</div>
-            <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ ...S.sendBtn, background: copied ? "#2e7d32" : "#1b1464" }}>
-              {copied ? "Copied!" : "Copy address"}
-            </button>
-            <div style={{ marginTop: 16, fontSize: 12, color: "#bbb", fontWeight: 500 }}>Get free testnet USDC at <a href="https://faucet.circle.com" style={{ color: "#1b1464", fontWeight: 700 }}>faucet.circle.com</a></div>
           </div>
         )}
 
@@ -853,83 +819,6 @@ export default function HomePage() {
                 )}
               </>
             )}
-          </div>
-        )}
-
-        {hasWallet && activeTab === "swap" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 500 }}>
-            <div style={S.card}>
-              <div style={S.cardTitle}>Swap tokens</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div style={{ background: "#f8f7fc", borderRadius: 12, padding: 16, border: "1px solid #e5e3ed" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 8 }}>From</div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1b1464", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 800 }}>{swapFrom === "USDC" ? "$" : "€"}</div>
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: "#1a1a2e" }}>{swapFrom}</div>
-                        <div style={{ fontSize: 11, color: "#bbb" }}>Balance: {swapFrom === "USDC" ? parseFloat(usdcBalance || "0").toFixed(2) : parseFloat(eurcBalance).toFixed(2)}</div>
-                      </div>
-                    </div>
-                    <input value={swapAmount} onChange={e => setSwapAmount(e.target.value)} type="number" placeholder="0.00" style={{ background: "transparent", border: "none", outline: "none", fontSize: 22, fontWeight: 800, color: "#1a1a2e", textAlign: "right" as const, width: 120 }} />
-                  </div>
-                </div>
-                <button onClick={() => setSwapFrom(prev => prev === "USDC" ? "EURC" : "USDC")} style={{ alignSelf: "center", background: "#e8e6f8", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#1b1464", fontSize: 16 }}>
-                  <i className="ti ti-arrows-up-down" aria-hidden="true"></i>
-                </button>
-                <div style={{ background: "#f8f7fc", borderRadius: 12, padding: 16, border: "1px solid #e5e3ed" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 8 }}>To</div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#2e7d32", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 800 }}>{swapFrom === "USDC" ? "€" : "$"}</div>
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: "#1a1a2e" }}>{swapFrom === "USDC" ? "EURC" : "USDC"}</div>
-                        <div style={{ fontSize: 11, color: "#bbb" }}>Balance: {swapFrom === "USDC" ? parseFloat(eurcBalance).toFixed(2) : parseFloat(usdcBalance || "0").toFixed(2)}</div>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: "#2e7d32" }}>{swapAmount ? (parseFloat(swapAmount) * (swapFrom === "USDC" ? 0.92 : 1.09)).toFixed(2) : "0.00"}</div>
-                  </div>
-                </div>
-                {swapAmount && parseFloat(swapAmount) > 0 && (
-                  <div style={{ background: "#f8f7fc", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#888" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span>Rate</span>
-                      <span style={{ fontWeight: 700, color: "#1a1a2e" }}>1 {swapFrom} = {swapFrom === "USDC" ? "0.92 EURC" : "1.09 USDC"}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span>Fee</span>
-                      <span style={{ fontWeight: 700, color: "#1a1a2e" }}>0.00 (testnet)</span>
-                    </div>
-                  </div>
-                )}
-                <button disabled={swapping || !swapAmount || parseFloat(swapAmount) <= 0} onClick={async () => {
-                  setSwapping(true); setSwapMsg(null);
-                  await new Promise(r => setTimeout(r, 1500));
-                  const amt = parseFloat(swapAmount);
-                  const received = (amt * (swapFrom === "USDC" ? 0.92 : 1.09)).toFixed(2);
-                  if (swapFrom === "USDC") {
-                    setUsdcBalance(prev => (parseFloat(prev || "0") - amt).toFixed(2));
-                    setEurcBalance(prev => (parseFloat(prev) + parseFloat(received)).toFixed(2));
-                  } else {
-                    setEurcBalance(prev => (parseFloat(prev) - amt).toFixed(2));
-                    setUsdcBalance(prev => (parseFloat(prev || "0") + parseFloat(received)).toFixed(2));
-                  }
-                  setSwapMsg({ type: "ok", text: `Swapped ${amt.toFixed(2)} ${swapFrom} for ${received} ${swapFrom === "USDC" ? "EURC" : "USDC"}!` });
-                  setSwapAmount("");
-                  setSwapping(false);
-                }} style={{ ...S.sendBtn, opacity: swapping || !swapAmount || parseFloat(swapAmount) <= 0 ? 0.5 : 1, cursor: swapping || !swapAmount ? "not-allowed" : "pointer" }}>
-                  {swapping ? "Swapping..." : "Swap now"}
-                </button>
-                {swapMsg && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: swapMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: swapMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{swapMsg.text}</div>}
-              </div>
-            </div>
-            <div style={{ background: "#e8e6f8", borderRadius: 12, padding: "14px 18px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#1b1464", marginBottom: 4 }}>Your balances</div>
-              <div style={{ display: "flex", gap: 16 }}>
-                <div style={{ fontSize: 13, color: "#888" }}>USDC: <span style={{ fontWeight: 800, color: "#1b1464" }}>{parseFloat(usdcBalance || "0").toFixed(2)}</span></div>
-                <div style={{ fontSize: 13, color: "#888" }}>EURC: <span style={{ fontWeight: 800, color: "#2e7d32" }}>{parseFloat(eurcBalance).toFixed(2)}</span></div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -1192,8 +1081,8 @@ export default function HomePage() {
                           if (parsed.action === "transfer" && addr && parsed.amount) {
                             setSendAddress(addr);
                             setSendAmount(String(parsed.amount));
-                            setActiveTab("send");
-                            setAiMessages(prev => [...prev, { role: "ai", text: "Send form pre-filled! Go to Send tab to confirm." }]);
+                            setActiveTab("dashboard");
+                            setAiMessages(prev => [...prev, { role: "ai", text: "Send form pre-filled! Check the Quick Send panel on your Dashboard to confirm." }]);
                           }
                         } catch {}
                       }
