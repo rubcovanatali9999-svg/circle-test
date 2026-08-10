@@ -6,6 +6,7 @@ import { SocialLoginProvider } from "@circle-fin/w3s-pw-web-sdk/dist/src/types";
 import type { W3SSdk } from "@circle-fin/w3s-pw-web-sdk";
 import WalletConnect from "./WalletConnect";
 import { useEvmWallet } from "./useEvmWallet";
+import { useBridgeKit, BRIDGE_TESTNET_CHAINS } from "./useBridgeKit";
 
 const appId = process.env.NEXT_PUBLIC_CIRCLE_APP_ID as string;
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string;
@@ -46,6 +47,10 @@ export default function HomePage() {
   const [analyticsPeriod, setAnalyticsPeriod] = useState<"7D"|"1M"|"ALL">("7D");
   const [eurcBalance, setEurcBalance] = useState<string>("20.00");
   const evm = useEvmWallet();
+  const bridgeKit = useBridgeKit();
+  const [bridgeFrom, setBridgeFrom] = useState("Ethereum_Sepolia");
+  const [bridgeTo, setBridgeTo] = useState("Arc_Testnet");
+  const [bridgeAmount, setBridgeAmount] = useState("");
 
   useEffect(() => {
     const savedUserToken = getCookie("userToken") as string;
@@ -307,6 +312,37 @@ export default function HomePage() {
     setStatus("Ready");
   };
 
+  const handleSendUsdc = async () => {
+    setSending(true); setSendMsg(null);
+
+    if (walletMode === "evm") {
+      try {
+        await evm.sendUsdc(sendAddress, sendAmount);
+        setSendMsg({ type: "ok", text: "Transaction submitted! Confirming on-chain..." });
+        setSendAddress(""); setSendAmount("");
+        await evm.refetchBalance();
+      } catch (err: any) {
+        setSendMsg({ type: "err", text: err?.shortMessage || err?.message || "Transaction rejected" });
+      }
+      setSending(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "getTransferChallenge", userToken: loginResult?.userToken, walletId: primaryWallet?.id, destinationAddress: sendAddress, amount: sendAmount }) });
+      const data = await res.json();
+      if (!res.ok) { setSendMsg({ type: "err", text: data.message || "Failed to send" }); setSending(false); return; }
+      const sdk = sdkRef.current;
+      if (!sdk || !data.challengeId) { setSendMsg({ type: "err", text: "No challenge ID" }); setSending(false); return; }
+      sdk.setAuthentication({ userToken: loginResult!.userToken, encryptionKey: loginResult!.encryptionKey });
+      sdk.execute(data.challengeId, async (error) => {
+        if (error) { setSendMsg({ type: "err", text: "Rejected: " + (error as any)?.message }); }
+        else { setSendMsg({ type: "ok", text: "Transaction confirmed!" }); setSendAddress(""); setSendAmount(""); if (loginResult?.userToken) await loadWallets(loginResult.userToken); }
+        setSending(false);
+      });
+    } catch { setSendMsg({ type: "err", text: "Network error" }); setSending(false); }
+  };
+
   const loadTransactions = async (userToken: string, walletId: string) => {
     setTxLoading(true);
     try {
@@ -406,6 +442,7 @@ export default function HomePage() {
     { id: "dashboard", label: "Dashboard", icon: "ti-layout-dashboard" },
     { id: "send", label: "Send", icon: "ti-arrow-up" },
     { id: "receive", label: "Receive", icon: "ti-arrow-down" },
+    { id: "bridge", label: "Bridge", icon: "ti-arrows-exchange" },
     { id: "swap", label: "Swap", icon: "ti-arrows-right-left" },
     { id: "treasury", label: "Treasury", icon: "ti-building-bank" },
     { id: "achievements", label: "Achievements", icon: "ti-trophy" },
@@ -449,7 +486,11 @@ export default function HomePage() {
 
   return (
     <div style={S.app}>
-      <style>{`@keyframes hcPulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }`}</style>
+      <style>{`
+        @keyframes hcPulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+        .hc-dash-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+        @media (max-width: 860px) { .hc-dash-grid { grid-template-columns: 1fr; } }
+      `}</style>
       <header style={S.topbar}>
         <div style={S.topbarRow}>
 
@@ -595,51 +636,77 @@ export default function HomePage() {
         )}
 
         {hasWallet && activeTab === "dashboard" && (
-          <>
-            <div style={S.balCard}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-                <span style={{ fontFamily: MONO, fontSize: 11, color: "#8f8ab8", letterSpacing: ".08em" }}>// TOTAL BALANCE</span>
-                <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 10, color: "#afa9ec", background: "#241f4d", padding: "5px 10px", borderRadius: 20, letterSpacing: ".06em" }}>
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#afa9ec", display: "inline-block", animation: "hcPulse 1.8s ease-in-out infinite" }} />
-                  LIVE
-                </span>
+          <div className="hc-dash-grid">
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div style={S.balCard}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 11, color: "#8f8ab8", letterSpacing: ".08em" }}>// TOTAL BALANCE</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 10, color: "#afa9ec", background: "#241f4d", padding: "5px 10px", borderRadius: 20, letterSpacing: ".06em" }}>
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#afa9ec", display: "inline-block", animation: "hcPulse 1.8s ease-in-out infinite" }} />
+                    LIVE
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 64, fontWeight: 700, color: "#fff", letterSpacing: "-3px", lineHeight: .95 }}>
+                    {(usdcBalance ? parseFloat(usdcBalance) : 0).toFixed(2).split(".")[0]}
+                  </span>
+                  <span style={{ fontSize: 34, fontWeight: 700, color: "#6b6690", letterSpacing: "-1.5px" }}>
+                    .{(usdcBalance ? parseFloat(usdcBalance) : 0).toFixed(2).split(".")[1]}
+                  </span>
+                  <span style={{ fontSize: 17, color: "#afa9ec" }}>USDC</span>
+                </div>
+                <div style={{ display: "flex", gap: 9, marginTop: 26, flexWrap: "wrap" }}>
+                  <button onClick={() => setActiveTab("send")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#afa9ec", color: "#15122b", border: "none", fontSize: 13, fontWeight: 700, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-arrow-up" aria-hidden="true"></i> Send</button>
+                  <button onClick={() => setActiveTab("receive")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#241f4d", color: "#cecbf6", border: "none", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-arrow-down" aria-hidden="true"></i> Receive</button>
+                  <button onClick={() => setActiveTab("history")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#241f4d", color: "#cecbf6", border: "none", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-list" aria-hidden="true"></i> History</button>
+                </div>
               </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 64, fontWeight: 700, color: "#fff", letterSpacing: "-3px", lineHeight: .95 }}>
-                  {(usdcBalance ? parseFloat(usdcBalance) : 0).toFixed(2).split(".")[0]}
-                </span>
-                <span style={{ fontSize: 34, fontWeight: 700, color: "#6b6690", letterSpacing: "-1.5px" }}>
-                  .{(usdcBalance ? parseFloat(usdcBalance) : 0).toFixed(2).split(".")[1]}
-                </span>
-                <span style={{ fontSize: 17, color: "#afa9ec" }}>USDC</span>
-              </div>
-              <div style={{ display: "flex", gap: 9, marginTop: 26, flexWrap: "wrap" }}>
-                <button onClick={() => setActiveTab("send")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#afa9ec", color: "#15122b", border: "none", fontSize: 13, fontWeight: 700, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-arrow-up" aria-hidden="true"></i> Send</button>
-                <button onClick={() => setActiveTab("receive")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#241f4d", color: "#cecbf6", border: "none", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-arrow-down" aria-hidden="true"></i> Receive</button>
-                <button onClick={() => setActiveTab("history")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#241f4d", color: "#cecbf6", border: "none", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 11, cursor: "pointer" }}><i className="ti ti-list" aria-hidden="true"></i> History</button>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
+                <div style={S.card}>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-coin" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
+                  <div style={S.micro}>// EURC</div>
+                  <div style={{ fontSize: 26, fontWeight: 700, color: C.tx, marginTop: 6, letterSpacing: "-.5px" }}>{parseFloat(eurcBalance).toFixed(2)}</div>
+                </div>
+                <div style={S.card}>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-topology-star" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
+                  <div style={S.micro}>// NETWORK</div>
+                  <div style={{ fontSize: 26, fontWeight: 700, color: C.ac, marginTop: 6, letterSpacing: "-.5px" }}>{primaryWallet.blockchain}</div>
+                  <div style={{ fontFamily: MONO, fontSize: 11, color: C.mut, marginTop: 4 }}>T+0 settlement</div>
+                </div>
+                <div style={S.card}>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-wallet" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
+                  <div style={S.micro}>// WALLET</div>
+                  <div style={{ fontFamily: MONO, fontSize: 15, color: C.tx, marginTop: 9 }}>{primaryWallet.address.slice(0,6)}…{primaryWallet.address.slice(-4)}</div>
+                  <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ marginTop: 10, background: "transparent", border: `0.5px solid ${C.bd}`, borderRadius: 8, padding: "5px 11px", fontSize: 11, fontWeight: 600, color: copied ? C.ac : C.sec, cursor: "pointer" }}>{copied ? "Copied" : "Copy"}</button>
+                </div>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={S.card}>
-                <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-coin" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
-                <div style={S.micro}>// EURC</div>
-                <div style={{ fontSize: 26, fontWeight: 700, color: C.tx, marginTop: 6, letterSpacing: "-.5px" }}>{parseFloat(eurcBalance).toFixed(2)}</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.tx, display: "flex", alignItems: "center", gap: 6 }}><i className="ti ti-arrow-up" aria-hidden="true" style={{ fontSize: 15, color: C.ac }}></i> Quick send</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <input value={sendAddress} onChange={e => setSendAddress(e.target.value)} placeholder="Recipient 0x..." style={{ ...S.input, fontSize: 13, padding: "10px 12px" }} />
+                  <input value={sendAmount} onChange={e => setSendAmount(e.target.value)} type="number" placeholder="Amount (USDC)" style={{ ...S.input, fontSize: 13, padding: "10px 12px" }} />
+                  <button disabled={sending || !sendAddress || !sendAmount} onClick={handleSendUsdc} style={{ ...S.sendBtn, padding: 10, fontSize: 13, opacity: sending || !sendAddress || !sendAmount ? 0.5 : 1, cursor: sending || !sendAddress || !sendAmount ? "not-allowed" : "pointer" }}>
+                    {sending ? (walletMode === "evm" ? "Confirm in MetaMask..." : "Confirming...") : "Send USDC"}
+                  </button>
+                  {sendMsg && <div style={{ fontSize: 12, padding: "9px 12px", borderRadius: 9, background: sendMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: sendMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{sendMsg.text}</div>}
+                </div>
               </div>
+
               <div style={S.card}>
-                <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-topology-star" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
-                <div style={S.micro}>// NETWORK</div>
-                <div style={{ fontSize: 26, fontWeight: 700, color: C.ac, marginTop: 6, letterSpacing: "-.5px" }}>{primaryWallet.blockchain}</div>
-                <div style={{ fontFamily: MONO, fontSize: 11, color: C.mut, marginTop: 4 }}>T+0 settlement</div>
-              </div>
-              <div style={S.card}>
-                <div style={{ width: 38, height: 38, borderRadius: 11, background: C.acSoft, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-wallet" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
-                <div style={S.micro}>// WALLET</div>
-                <div style={{ fontFamily: MONO, fontSize: 15, color: C.tx, marginTop: 9 }}>{primaryWallet.address.slice(0,6)}…{primaryWallet.address.slice(-4)}</div>
-                <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ marginTop: 10, background: "transparent", border: `0.5px solid ${C.bd}`, borderRadius: 8, padding: "5px 11px", fontSize: 11, fontWeight: 600, color: copied ? C.ac : C.sec, cursor: "pointer" }}>{copied ? "Copied" : "Copy"}</button>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.tx, display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}><i className="ti ti-arrow-down" aria-hidden="true" style={{ fontSize: 15, color: C.ac }}></i> Quick receive</div>
+                <div style={{ background: C.sub, border: `1px solid ${C.bd}`, borderRadius: 10, padding: "12px 14px", fontFamily: MONO, fontSize: 12, color: C.tx, wordBreak: "break-all" as const, marginBottom: 12 }}>{primaryWallet.address}</div>
+                <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ ...S.sendBtn, padding: 10, fontSize: 13, background: copied ? "#2e7d32" : C.ac }}>
+                  {copied ? "Copied!" : "Copy address"}
+                </button>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {hasWallet && activeTab === "send" && (
@@ -676,36 +743,7 @@ export default function HomePage() {
                   )}
                 </div>
               )}
-              <button disabled={sending || !sendAddress || !sendAmount} onClick={async () => {
-                setSending(true); setSendMsg(null);
-
-                if (walletMode === "evm") {
-                  try {
-                    await evm.sendUsdc(sendAddress, sendAmount);
-                    setSendMsg({ type: "ok", text: "Transaction submitted! Confirming on-chain..." });
-                    setSendAddress(""); setSendAmount("");
-                    await evm.refetchBalance();
-                  } catch (err: any) {
-                    setSendMsg({ type: "err", text: err?.shortMessage || err?.message || "Transaction rejected" });
-                  }
-                  setSending(false);
-                  return;
-                }
-
-                try {
-                  const res = await fetch("/api/endpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "getTransferChallenge", userToken: loginResult?.userToken, walletId: primaryWallet?.id, destinationAddress: sendAddress, amount: sendAmount }) });
-                  const data = await res.json();
-                  if (!res.ok) { setSendMsg({ type: "err", text: data.message || "Failed to send" }); setSending(false); return; }
-                  const sdk = sdkRef.current;
-                  if (!sdk || !data.challengeId) { setSendMsg({ type: "err", text: "No challenge ID" }); setSending(false); return; }
-                  sdk.setAuthentication({ userToken: loginResult!.userToken, encryptionKey: loginResult!.encryptionKey });
-                  sdk.execute(data.challengeId, async (error) => {
-                    if (error) { setSendMsg({ type: "err", text: "Rejected: " + (error as any)?.message }); }
-                    else { setSendMsg({ type: "ok", text: "Transaction confirmed!" }); setSendAddress(""); setSendAmount(""); if (loginResult?.userToken) await loadWallets(loginResult.userToken); }
-                    setSending(false);
-                  });
-                } catch { setSendMsg({ type: "err", text: "Network error" }); setSending(false); }
-              }} style={{ ...S.sendBtn, opacity: sending || !sendAddress || !sendAmount ? 0.5 : 1, cursor: sending || !sendAddress || !sendAmount ? "not-allowed" : "pointer" }}>
+              <button disabled={sending || !sendAddress || !sendAmount} onClick={handleSendUsdc} style={{ ...S.sendBtn, opacity: sending || !sendAddress || !sendAmount ? 0.5 : 1, cursor: sending || !sendAddress || !sendAmount ? "not-allowed" : "pointer" }}>
                 {sending ? (walletMode === "evm" ? "Confirm in MetaMask..." : "Confirming...") : "Send USDC"}
               </button>
               {sendMsg && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: sendMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: sendMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{sendMsg.text}</div>}
@@ -722,6 +760,99 @@ export default function HomePage() {
               {copied ? "Copied!" : "Copy address"}
             </button>
             <div style={{ marginTop: 16, fontSize: 12, color: "#bbb", fontWeight: 500 }}>Get free testnet USDC at <a href="https://faucet.circle.com" style={{ color: "#1b1464", fontWeight: 700 }}>faucet.circle.com</a></div>
+          </div>
+        )}
+
+        {hasWallet && activeTab === "bridge" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 520 }}>
+            {walletMode !== "evm" ? (
+              <div style={{ ...S.card }}>
+                <div style={S.cardTitle}>Bridge USDC (CCTP)</div>
+                <div style={{ fontSize: 13, color: "#888", lineHeight: 1.6 }}>
+                  Bridge signs a real on-chain transaction on the source chain, so it needs a self-custodial wallet
+                  you hold the keys for. Connect with MetaMask instead of Google to use the bridge — your USDC
+                  balance and everything else will still be there.
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={S.card}>
+                  <div style={S.cardTitle}>Bridge USDC (CCTP)</div>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 14, lineHeight: 1.5 }}>
+                    Powered by Circle's Cross-Chain Transfer Protocol — burns USDC on the source chain and mints real USDC on the destination. No wrapped tokens.
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: "#888", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".04em" }}>From</div>
+                      <select value={bridgeFrom} onChange={(e) => setBridgeFrom(e.target.value)} style={S.input}>
+                        {BRIDGE_TESTNET_CHAINS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => { const f = bridgeFrom; setBridgeFrom(bridgeTo); setBridgeTo(f); }}
+                      aria-label="Swap direction"
+                      style={{ marginTop: 20, background: "#f8f7fc", border: "1px solid #e5e3ed", borderRadius: 9, width: 34, height: 34, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <i className="ti ti-arrows-right-left" aria-hidden="true"></i>
+                    </button>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: "#888", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".04em" }}>To</div>
+                      <select value={bridgeTo} onChange={(e) => setBridgeTo(e.target.value)} style={S.input}>
+                        {BRIDGE_TESTNET_CHAINS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: "#888", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".04em" }}>Amount (USDC)</div>
+                    <input value={bridgeAmount} onChange={(e) => setBridgeAmount(e.target.value)} type="number" placeholder="0.00" style={S.input} />
+                  </div>
+
+                  <button
+                    disabled={bridgeKit.status === "running" || !bridgeAmount || bridgeFrom === bridgeTo}
+                    onClick={() => { bridgeKit.reset(); bridgeKit.runBridge(bridgeFrom, bridgeTo, bridgeAmount).catch(() => {}); }}
+                    style={{ ...S.sendBtn, opacity: bridgeKit.status === "running" || !bridgeAmount || bridgeFrom === bridgeTo ? 0.5 : 1, cursor: bridgeKit.status === "running" || !bridgeAmount || bridgeFrom === bridgeTo ? "not-allowed" : "pointer" }}
+                  >
+                    {bridgeKit.status === "running" ? "Bridging..." : "Bridge USDC"}
+                  </button>
+
+                  {bridgeFrom === bridgeTo && (
+                    <div style={{ fontSize: 11, color: "#c62828", marginTop: 8 }}>Source and destination must be different.</div>
+                  )}
+                  {bridgeKit.errorMsg && (
+                    <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: "#fce8e8", color: "#c62828", fontWeight: 600, marginTop: 10 }}>{bridgeKit.errorMsg}</div>
+                  )}
+                  {bridgeKit.status === "success" && (
+                    <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: "#e8f5e9", color: "#2e7d32", fontWeight: 600, marginTop: 10 }}>Bridge complete! Funds should arrive on the destination chain shortly.</div>
+                  )}
+                </div>
+
+                {bridgeKit.steps.length > 0 && (
+                  <div style={S.card}>
+                    <div style={S.cardTitle}>Progress</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {bridgeKit.steps.map((step, i) => (
+                        <div key={step.name + i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", borderRadius: 9, background: "#f8f7fc" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{
+                              width: 8, height: 8, borderRadius: "50%",
+                              background: step.state === "success" ? "#2e7d32" : step.state === "error" ? "#c62828" : "#f59e0b",
+                            }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", textTransform: "capitalize" }}>{step.name}</span>
+                          </div>
+                          {step.explorerUrl ? (
+                            <a href={step.explorerUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#1b1464", fontWeight: 700 }}>View tx</a>
+                          ) : (
+                            <span style={{ fontSize: 11, color: "#aaa", textTransform: "capitalize" }}>{step.state}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 

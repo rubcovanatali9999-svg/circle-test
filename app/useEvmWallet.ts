@@ -6,7 +6,6 @@ import {
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
-  usePublicClient,
 } from "wagmi";
 import { formatUnits, parseUnits, isAddress } from "viem";
 import { arcTestnet } from "./wagmi";
@@ -37,25 +36,6 @@ const erc20Abi = [
     outputs: [{ name: "", type: "bool" }],
   },
 ] as const;
-
-const transferEvent = {
-  type: "event",
-  name: "Transfer",
-  inputs: [
-    { name: "from", type: "address", indexed: true },
-    { name: "to", type: "address", indexed: true },
-    { name: "value", type: "uint256", indexed: false },
-  ],
-} as const;
-
-/** Shape matches what the History/Achievements UI expects from Circle's getTransactions API. */
-export type EvmTx = {
-  transactionType: "INBOUND" | "OUTBOUND";
-  amounts: [string];
-  sourceAddress: string;
-  destinationAddress: string;
-  createDate: string;
-};
 
 /**
  * Reads USDC balance and sends USDC directly on-chain on Arc Testnet,
@@ -113,83 +93,6 @@ export function useEvmWallet() {
     return hash;
   };
 
-  const publicClient = usePublicClient({ chainId: arcTestnet.id });
-
-  /**
-   * Reads USDC transfer history for `userAddress` directly from Arc Testnet logs
-   * (Transfer events on the USDC ERC-20 contract) — no Circle API involved.
-   * Falls back to a recent block window if the full-history query is rejected
-   * by the RPC (some providers cap the block range for eth_getLogs).
-   */
-  const loadEvmHistory = async (userAddress: `0x${string}`): Promise<EvmTx[]> => {
-    if (!publicClient) return [];
-
-    const fetchLogs = async (fromBlock: bigint) => {
-      const [outgoing, incoming] = await Promise.all([
-        publicClient.getLogs({ address: ARC_USDC_ADDRESS, event: transferEvent, args: { from: userAddress }, fromBlock, toBlock: "latest" }),
-        publicClient.getLogs({ address: ARC_USDC_ADDRESS, event: transferEvent, args: { to: userAddress }, fromBlock, toBlock: "latest" }),
-      ]);
-      return [...outgoing, ...incoming];
-    };
-
-    let logs;
-    try {
-      logs = await fetchLogs(0n);
-    } catch {
-      try {
-        const latest = await publicClient.getBlockNumber();
-        const fallbackFrom = latest > 50000n ? latest - 50000n : 0n;
-        logs = await fetchLogs(fallbackFrom);
-      } catch {
-        return [];
-      }
-    }
-
-    const seen = new Set<string>();
-    const unique = logs.filter((log) => {
-      const key = `${log.transactionHash}-${log.logIndex}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-
-    unique.sort((a, b) => Number((b.blockNumber ?? 0n) - (a.blockNumber ?? 0n)));
-    const top = unique.slice(0, 25);
-
-    const blockTimeCache = new Map<string, number>();
-    const results = await Promise.all(
-      top.map(async (log) => {
-        const bn = log.blockNumber;
-        const cacheKey = bn?.toString() ?? "0";
-        let ts = blockTimeCache.get(cacheKey);
-        if (ts === undefined) {
-          try {
-            const block = bn ? await publicClient.getBlock({ blockNumber: bn }) : null;
-            ts = block ? Number(block.timestamp) * 1000 : Date.now();
-          } catch {
-            ts = Date.now();
-          }
-          blockTimeCache.set(cacheKey, ts);
-        }
-        const args = log.args as { from?: string; to?: string; value?: bigint };
-        const from = args.from ?? "";
-        const to = args.to ?? "";
-        const value = args.value ?? 0n;
-        const isOut = from.toLowerCase() === userAddress.toLowerCase();
-        const tx: EvmTx = {
-          transactionType: isOut ? "OUTBOUND" : "INBOUND",
-          amounts: [formatUnits(value, ARC_USDC_DECIMALS)],
-          sourceAddress: from,
-          destinationAddress: to,
-          createDate: new Date(ts).toISOString(),
-        };
-        return tx;
-      })
-    );
-
-    return results;
-  };
-
   return {
     address,
     isConnected,
@@ -202,6 +105,5 @@ export function useEvmWallet() {
     sendPending: writePending || waitingForReceipt,
     txHash,
     txConfirmed,
-    loadEvmHistory,
   };
 }
