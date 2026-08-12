@@ -49,6 +49,8 @@ export default function HomePage() {
   const [eurcBalance, setEurcBalance] = useState<string>("20.00");
   const evm = useEvmWallet();
   const bridgeKit = useBridgeKit();
+  const [hasBridgedPersisted, setHasBridgedPersisted] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const badges = useBadges();
   const [bridgeFrom, setBridgeFrom] = useState("Ethereum_Sepolia");
   const [bridgeTo, setBridgeTo] = useState("Arc_Testnet");
@@ -345,6 +347,26 @@ export default function HomePage() {
     } catch { setSendMsg({ type: "err", text: "Network error" }); setSending(false); }
   };
 
+  const handleRefreshAll = async () => {
+    setRefreshing(true);
+    try {
+      if (walletMode === "evm" && evm.address) {
+        await evm.refetchBalance();
+        setTxLoading(true);
+        const txs = await evm.loadEvmHistory(evm.address);
+        setTransactions(txs);
+        setTxLoading(false);
+        badges.refetch();
+      } else if (walletMode === "circle" && loginResult?.userToken) {
+        await loadWallets(loginResult.userToken, "manualRefresh");
+        if (primaryWallet?.id) await loadTransactions(loginResult.userToken, primaryWallet.id);
+      }
+    } catch (e) {
+      console.error("[HashCrew] refresh failed:", e);
+    }
+    setRefreshing(false);
+  };
+
   const loadTransactions = async (userToken: string, walletId: string) => {
     setTxLoading(true);
     try {
@@ -409,9 +431,21 @@ export default function HomePage() {
     setTxLoading(true);
     evm.loadEvmHistory(evm.address)
       .then((txs) => setTransactions(txs))
-      .catch(() => setTransactions([]))
+      .catch((e) => { console.error("[HashCrew] loadEvmHistory failed:", e); setTransactions([]); })
       .finally(() => setTxLoading(false));
   }, [walletMode, evm.address]);
+
+  useEffect(() => {
+    if (!evm.address || typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(`hashcrew:hasBridged:${evm.address.toLowerCase()}`);
+    setHasBridgedPersisted(stored === "true");
+  }, [evm.address]);
+
+  useEffect(() => {
+    if (bridgeKit.status !== "success" || !evm.address || typeof window === "undefined") return;
+    window.localStorage.setItem(`hashcrew:hasBridged:${evm.address.toLowerCase()}`, "true");
+    setHasBridgedPersisted(true);
+  }, [bridgeKit.status, evm.address]);
 
   useEffect(() => {
     if (!sdkReady || !deviceId || deviceIdLoading) return;
@@ -487,6 +521,7 @@ export default function HomePage() {
     <div style={S.app}>
       <style>{`
         @keyframes hcPulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+        @keyframes hcSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .hc-dash-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
         @media (max-width: 860px) { .hc-dash-grid { grid-template-columns: 1fr; } }
 
@@ -664,10 +699,20 @@ export default function HomePage() {
               <div style={S.balCard}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
                   <span style={{ fontFamily: MONO, fontSize: 11, color: "#8f8ab8", letterSpacing: ".08em" }}>// TOTAL BALANCE</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 10, color: "#afa9ec", background: "#241f4d", padding: "5px 10px", borderRadius: 20, letterSpacing: ".06em" }}>
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#afa9ec", display: "inline-block", animation: "hcPulse 1.8s ease-in-out infinite" }} />
-                    LIVE
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button
+                      onClick={handleRefreshAll}
+                      disabled={refreshing}
+                      aria-label="Refresh"
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "50%", background: "#241f4d", border: "none", cursor: refreshing ? "wait" : "pointer" }}
+                    >
+                      <i className="ti ti-refresh" aria-hidden="true" style={{ fontSize: 13, color: "#afa9ec", display: "inline-block", animation: refreshing ? "hcSpin 0.7s linear infinite" : "none" }}></i>
+                    </button>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 10, color: "#afa9ec", background: "#241f4d", padding: "5px 10px", borderRadius: 20, letterSpacing: ".06em" }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#afa9ec", display: "inline-block", animation: "hcPulse 1.8s ease-in-out infinite" }} />
+                      LIVE
+                    </span>
+                  </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 64, fontWeight: 700, color: "#fff", letterSpacing: "-3px", lineHeight: .95 }}>
@@ -726,6 +771,9 @@ export default function HomePage() {
                 <button onClick={() => { navigator.clipboard.writeText(primaryWallet.address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} style={{ ...S.sendBtn, padding: 10, fontSize: 13, background: copied ? "#2e7d32" : C.ac }}>
                   {copied ? "Copied!" : "Copy address"}
                 </button>
+                <a href="https://faucet.circle.com" target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10, fontSize: 12, fontWeight: 700, color: C.ac, textDecoration: "none", background: C.badgeGrad, borderRadius: 10, padding: 10 }}>
+                  <i className="ti ti-droplet" aria-hidden="true" style={{ fontSize: 14 }}></i> Need USDC? Get testnet tokens
+                </a>
               </div>
             </div>
           </div>
@@ -1182,7 +1230,7 @@ export default function HomePage() {
                 ) : (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
                     {BADGES.map((b) => {
-                      const eligible = b.id === 0 ? hasSent : b.id === 1 ? hasReceived : b.id === 2 ? bridgeKit.status === "success" : isWhale;
+                      const eligible = b.id === 0 ? hasSent : b.id === 1 ? hasReceived : b.id === 2 ? (bridgeKit.status === "success" || hasBridgedPersisted) : isWhale;
                       const isMinted = !!badges.minted[b.id];
                       const isMinting = badges.mintingId === b.id;
                       return (

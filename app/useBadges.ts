@@ -83,5 +83,5 @@ export function useBadges() {
     }
   }, [writeContractAsync]);
 
-  return { minted, mint, mintingId, error };
+  return { minted, mint, mintingId, error, refetch };
 }

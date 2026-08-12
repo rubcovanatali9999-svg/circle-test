@@ -78,7 +78,7 @@ export function useEvmWallet() {
     chainId: arcTestnet.id,
     query: {
       enabled: !!address && isConnected && isArc,
-      refetchInterval: 15000,
+      refetchInterval: 45000,
     },
   });
 
@@ -118,35 +118,71 @@ export function useEvmWallet() {
   /**
    * Reads USDC transfer history for `userAddress` directly from Arc Testnet logs
    * (Transfer events on the USDC ERC-20 contract) — no Circle API involved.
-   * Falls back to a recent block window if the full-history query is rejected
-   * by the RPC (some providers cap the block range for eth_getLogs).
+   *
+   * Arc's public RPC caps how wide a block range eth_getLogs can cover per call,
+   * AND rate-limits how many calls can land in quick succession. So instead of
+   * firing off several wide, parallel queries (which trips the rate limit almost
+   * immediately), we walk backwards from the latest block in small sequential
+   * chunks with a short delay between each request, stopping early once we have
+   * enough transactions or run out of chunks to check.
    */
   const loadEvmHistory = async (userAddress: `0x${string}`): Promise<EvmTx[]> => {
     if (!publicClient) return [];
 
-    const fetchLogs = async (fromBlock: bigint) => {
-      const [outgoing, incoming] = await Promise.all([
-        publicClient.getLogs({ address: ARC_USDC_ADDRESS, event: transferEvent, args: { from: userAddress }, fromBlock, toBlock: "latest" }),
-        publicClient.getLogs({ address: ARC_USDC_ADDRESS, event: transferEvent, args: { to: userAddress }, fromBlock, toBlock: "latest" }),
-      ]);
-      return [...outgoing, ...incoming];
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const CHUNK_SIZE = 2000n;
+    const MAX_CHUNKS = 40; // up to ~80,000 blocks of lookback
+    const DELAY_MS = 350;
+    const TARGET_COUNT = 25;
+    const RETRY_DELAYS_MS = [800, 1800]; // retries per chunk before giving up on it
+
+    const getLogsWithRetry = async (args: { from?: `0x${string}`; to?: `0x${string}` }, fromBlock: bigint, toBlock: bigint) => {
+      for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+        try {
+          return await publicClient.getLogs({ address: ARC_USDC_ADDRESS, event: transferEvent, args, fromBlock, toBlock });
+        } catch (e) {
+          if (attempt === RETRY_DELAYS_MS.length) throw e;
+          console.warn(`[HashCrew] getLogs retry ${attempt + 1} for ${fromBlock.toString()}-${toBlock.toString()}:`, e);
+          await sleep(RETRY_DELAYS_MS[attempt]);
+        }
+      }
+      return [];
     };
 
-    let logs;
+    let latest: bigint;
     try {
-      logs = await fetchLogs(0n);
-    } catch {
-      try {
-        const latest = await publicClient.getBlockNumber();
-        const fallbackFrom = latest > 50000n ? latest - 50000n : 0n;
-        logs = await fetchLogs(fallbackFrom);
-      } catch {
-        return [];
-      }
+      latest = await publicClient.getBlockNumber();
+    } catch (e) {
+      console.error("[HashCrew] failed to fetch latest block number:", e);
+      return [];
     }
 
+    const collected: any[] = [];
+    let cursor = latest;
+    let chunksChecked = 0;
+
+    while (chunksChecked < MAX_CHUNKS && cursor >= 0n && collected.length < TARGET_COUNT) {
+      const fromBlock = cursor > CHUNK_SIZE ? cursor - CHUNK_SIZE : 0n;
+      try {
+        const outgoing = await getLogsWithRetry({ from: userAddress }, fromBlock, cursor);
+        collected.push(...outgoing);
+        await sleep(DELAY_MS);
+        const incoming = await getLogsWithRetry({ to: userAddress }, fromBlock, cursor);
+        collected.push(...incoming);
+      } catch (e) {
+        console.warn(`[HashCrew] chunk ${fromBlock.toString()}-${cursor.toString()} failed after retries:`, e);
+      }
+
+      if (fromBlock === 0n) break;
+      cursor = fromBlock - 1n;
+      chunksChecked++;
+      await sleep(DELAY_MS);
+    }
+
+    console.log(`[HashCrew] history scan finished: ${chunksChecked + 1} chunk(s) checked, ${collected.length} raw log(s) found`);
+
     const seen = new Set<string>();
-    const unique = logs.filter((log) => {
+    const unique = collected.filter((log) => {
       const key = `${log.transactionHash}-${log.logIndex}`;
       if (seen.has(key)) return false;
       seen.add(key);
