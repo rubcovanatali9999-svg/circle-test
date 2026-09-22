@@ -8,6 +8,7 @@ import WalletConnect from "./WalletConnect";
 import { useEvmWallet } from "./useEvmWallet";
 import { useBridgeKit, BRIDGE_TESTNET_CHAINS } from "./useBridgeKit";
 import { useBadges, BADGES } from "./useBadges";
+import { useStaking, LockType, LOCK_LABELS, LOCK_MULTIPLIERS, STAKING_ADDRESS } from "./useStaking";
 
 const appId = process.env.NEXT_PUBLIC_CIRCLE_APP_ID as string;
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string;
@@ -52,6 +53,11 @@ export default function HomePage() {
   const [hasBridgedPersisted, setHasBridgedPersisted] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const badges = useBadges();
+  const staking = useStaking();
+  const [stakeAmount, setStakeAmount] = useState("");
+  const [stakeLock, setStakeLock] = useState<LockType>(LockType.FLEXIBLE);
+  const [positions, setPositions] = useState<Awaited<ReturnType<typeof staking.loadPositions>>>([]);
+  const [positionsLoading, setPositionsLoading] = useState(false);
   const [bridgeFrom, setBridgeFrom] = useState("Ethereum_Sepolia");
   const [bridgeTo, setBridgeTo] = useState("Arc_Testnet");
   const [bridgeAmount, setBridgeAmount] = useState("");
