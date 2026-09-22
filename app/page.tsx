@@ -699,6 +699,73 @@ export default function HomePage() {
           </div>
         )}
 
+                {hasWallet && activeTab === "treasury" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+              {[
+                { label: "Total stakers", value: staking.stakerCount + " users" },
+                { label: "Total staked", value: staking.totalStaked + " USDC" },
+                { label: "Your points", value: staking.totalPoints + " pts" },
+              ].map((m, i) => (
+                <div key={i} style={{ background: "#f8f7fc", borderRadius: 12, border: "1px solid #e5e3ed", padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>{m.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#1b1464" }}>{m.value}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e3ed", padding: 20 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#1b1464", marginBottom: 16 }}>Stake USDC</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                {([0,1,2,3] as const).map(lt => (
+                  <button key={lt} onClick={() => setStakeLock(lt)} style={{ padding: "10px 14px", borderRadius: 10, border: `2px solid ${stakeLock === lt ? "#1b1464" : "#e5e3ed"}`, background: stakeLock === lt ? "#1b1464" : "#f8f7fc", color: stakeLock === lt ? "#fff" : "#1b1464", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                    {LOCK_LABELS[lt]} <span style={{ opacity: .7, fontSize: 11 }}>{LOCK_MULTIPLIERS[lt]}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                <input value={stakeAmount} onChange={e => setStakeAmount(e.target.value)} type="number" placeholder="Amount (min 1 USDC)" style={{ ...S.input, flex: 1 }} />
+                <button onClick={async () => { try { await staking.stakeUsdc(stakeAmount, stakeLock); setStakeAmount(""); const p = await staking.loadPositions(); setPositions(p); } catch {} }} disabled={staking.staking || !stakeAmount} style={{ ...S.sendBtn, width: "auto", padding: "11px 20px", opacity: staking.staking || !stakeAmount ? .5 : 1 }}>
+                  {staking.staking ? "Staking..." : "Stake"}
+                </button>
+              </div>
+              {staking.stakeMsg && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: staking.stakeMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: staking.stakeMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600, marginBottom: 8 }}>{staking.stakeMsg.text}</div>}
+              <button onClick={async () => { setPositionsLoading(true); const p = await staking.loadPositions(); setPositions(p); setPositionsLoading(false); }} style={{ fontSize: 12, fontWeight: 700, color: "#1b1464", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+                {positionsLoading ? "Loading..." : "Refresh positions"}
+              </button>
+            </div>
+            {positions.filter(p => p.active).length > 0 && (
+              <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e3ed", padding: 20 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#1b1464", marginBottom: 14 }}>Your positions</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {positions.filter(p => p.active).map((pos, i) => {
+                    const now = BigInt(Math.floor(Date.now() / 1000));
+                    const canUnstake = pos.lockType === 0 || now >= pos.unlockAt;
+                    const unlockDate = pos.unlockAt > 0n ? new Date(Number(pos.unlockAt) * 1000).toLocaleDateString() : "Any time";
+                    return (
+                      <div key={i} style={{ background: "#f8f7fc", borderRadius: 10, border: "1px solid #e5e3ed", padding: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: "#1b1464" }}>{(Number(pos.amount) / 1e6).toFixed(2)} USDC</div>
+                          <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{LOCK_LABELS[pos.lockType]} · Unlocks: {unlockDate}</div>
+                        </div>
+                        <button onClick={async () => { try { await staking.unstakePosition(pos.idx); const p = await staking.loadPositions(); setPositions(p); } catch {} }} disabled={!canUnstake || staking.unstaking === pos.idx} style={{ background: canUnstake ? "#1b1464" : "#e5e3ed", color: canUnstake ? "#fff" : "#bbb", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: canUnstake ? "pointer" : "not-allowed" }}>
+                          {staking.unstaking === pos.idx ? "..." : canUnstake ? "Unstake" : "Locked"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <div style={{ background: "#e8e6f8", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1b1464" }}>HashCrew Staking Contract</div>
+                <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>Deployed on Arc Testnet</div>
+              </div>
+              <a href={"https://explorer.arc.io/address/" + STAKING_ADDRESS} target="_blank" rel="noreferrer" style={{ background: "#1b1464", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", textDecoration: "none" }}>View contract</a>
+            </div>
+          </div>
+        )}
+
         {hasWallet && activeTab === "dashboard" && (
           <div className="hc-dash-grid">
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
