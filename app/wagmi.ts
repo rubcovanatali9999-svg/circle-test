@@ -3,22 +3,22 @@ import { injected } from "wagmi/connectors";
 import { defineChain } from "viem";
 
 export const arcTestnet = defineChain({
-  id: 5042002,
+  id: 2030,
   name: "Arc Testnet",
   nativeCurrency: {
     name: "USDC",
     symbol: "USDC",
-    decimals: 18,
+    decimals: 6,
   },
   rpcUrls: {
     default: {
-      http: ["https://rpc.testnet.arc.network"],
+      http: ["https://rpc.testnet.arc.io"],
     },
   },
   blockExplorers: {
     default: {
       name: "ArcScan",
-      url: "https://testnet.arcscan.app",
+      url: "https://explorer.testnet.arc.io",
     },
   },
   testnet: true,
