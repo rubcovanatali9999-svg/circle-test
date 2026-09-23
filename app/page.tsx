@@ -1385,11 +1385,11 @@ export default function HomePage() {
 
 
         {hasWallet && activeTab === "watchlist" && (() => {
-          const [watchAddress, setWatchAddress] = React.useState("");
-          const [watchData, setWatchData] = React.useState<{balance: string; txs: any[]} | null>(null);
-          const [watchLoading, setWatchLoading] = React.useState(false);
-          const [watchError, setWatchError] = React.useState<string | null>(null);
-          const [savedAddresses, setSavedAddresses] = React.useState<{address: string; label: string}[]>(() => {
+          const [watchAddress, setWatchAddress] = useState("");
+          const [watchData, setWatchData] = useState<{balance: string; txs: any[]} | null>(null);
+          const [watchLoading, setWatchLoading] = useState(false);
+          const [watchError, setWatchError] = useState<string | null>(null);
+          const [savedAddresses, setSavedAddresses] = useState<{address: string; label: string}[]>(() => {
             try { return JSON.parse(localStorage.getItem("watchlist") || "[]"); } catch { return []; }
           });
 
