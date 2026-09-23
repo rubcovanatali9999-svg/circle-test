@@ -1289,7 +1289,8 @@ export default function HomePage() {
                 )}
               </div>
             </div>
-        })()}
+          </div>
+        )})()}
 
         {hasWallet && activeTab === "learn" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
