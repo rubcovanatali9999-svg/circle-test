@@ -1417,19 +1417,19 @@ export default function HomePage() {
                 const updated = [...watchSaved, { address: watchAddr, label }];
                 setWatchSaved(updated);
                 localStorage.setItem("watchlist_saved", JSON.stringify(updated));
-              }} style={{ fontSize: 12, fontWeight: 700, color: "#1b1464", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>+ Save address</button>
+              }} style={{ fontSize: 12, fontWeight: 700, color: C.ac, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>+ Save address</button>
               {watchErr && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: "#fce8e8", color: "#c62828", fontWeight: 600, marginTop: 8 }}>{watchErr}</div>}
               {watchBal !== null && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
                   <div style={S.card}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>USDC Balance</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.sec, textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>USDC Balance</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: C.tx }}>{watchBal} USDC</div>
                   </div>
                   <div style={S.card}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>Transactions</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.sec, textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>Transactions</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: C.tx }}>{watchTxCount}</div>
                   </div>
-                  <a href={"https://explorer.testnet.arc.io/address/"+watchAddr} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "#1b1464", gridColumn: "span 2" }}>View on Arc Explorer →</a>
+                  <a href={"https://explorer.testnet.arc.io/address/"+watchAddr} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: C.ac, gridColumn: "span 2" }}>View on Arc Explorer →</a>
                 </div>
               )}
             </div>
@@ -1441,7 +1441,7 @@ export default function HomePage() {
                     <div key={i} style={{ background: "#f8f7fc", borderRadius: 10, border: "1px solid #e5e3ed", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: C.tx }}>{item.label}</div>
-                        <div style={{ fontSize: 11, color: "#888", fontFamily: "monospace", marginTop: 2 }}>{item.address.slice(0,10)}...{item.address.slice(-6)}</div>
+                        <div style={{ fontSize: 11, color: C.sec, fontFamily: "monospace", marginTop: 2 }}>{item.address.slice(0,10)}...{item.address.slice(-6)}</div>
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
                         <button onClick={() => setWatchAddr(item.address)} style={{ background: "#1b1464", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>View</button>
