@@ -1112,8 +1112,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-          );
-        })()}
+        }
 
         {hasWallet && activeTab === "ai" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 600 }}>
@@ -1289,8 +1288,7 @@ export default function HomePage() {
                 )}
               </div>
             </div>
-          );
-        })()}
+        }
 
         {hasWallet && activeTab === "learn" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1467,8 +1465,7 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-          );
-        })()}
+        }
 
         {hasWallet && activeTab === "history" && (
           <div style={S.card}>
