@@ -1,4 +1,4 @@
-import { createConfig, http, fallback } from "wagmi";
+import { createConfig, http } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { defineChain } from "viem";
 
@@ -12,10 +12,7 @@ export const arcTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: [
-        "https://rpc.testnet.arc.io",
-        "https://rpc-testnet.arc.io",
-      ],
+      http: ["/api/rpc"],
     },
   },
   blockExplorers: {
@@ -29,15 +26,8 @@ export const arcTestnet = defineChain({
 
 export const config = createConfig({
   chains: [arcTestnet],
-  connectors: [
-    injected({
-      shimDisconnect: true,
-    }),
-  ],
+  connectors: [injected({ shimDisconnect: true })],
   transports: {
-    [arcTestnet.id]: fallback([
-      http("https://rpc.testnet.arc.io"),
-      http("https://rpc-testnet.arc.io"),
-    ]),
+    [arcTestnet.id]: http("/api/rpc"),
   },
 });
