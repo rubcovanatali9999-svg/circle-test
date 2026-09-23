@@ -58,6 +58,27 @@ export default function HomePage() {
   const [stakeLock, setStakeLock] = useState<LockType>(LockType.FLEXIBLE);
   const [positions, setPositions] = useState<Awaited<ReturnType<typeof staking.loadPositions>>>([]);
   const [positionsLoading, setPositionsLoading] = useState(false);
+  const [watchAddress, setWatchAddress] = useState("");
+  const [watchData, setWatchData] = useState<{balance: string; txs: any[]} | null>(null);
+  const [watchLoading, setWatchLoading] = useState(false);
+  const [watchError, setWatchError] = useState<string | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<{address: string; label: string}[]>([]);
+  const lookupAddress = useCallback(async (addr: string) => {
+    if (!addr || addr.length < 10) return;
+    setWatchLoading(true); setWatchError(null); setWatchData(null);
+    try {
+      const [balRes, txRes] = await Promise.all([
+        fetch("/api/rpc", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({jsonrpc:"2.0",method:"eth_call",params:[{to:"0x3600000000000000000000000000000000000000",data:"0x70a08231000000000000000000000000"+addr.slice(2).padStart(64,"0")},"latest"],id:1}) }).then(r=>r.json()),
+        fetch("/api/rpc", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({jsonrpc:"2.0",method:"eth_getTransactionCount",params:[addr,"latest"],id:2}) }).then(r=>r.json()),
+      ]);
+      const rawBal = balRes.result ? parseInt(balRes.result, 16) : 0;
+      const balance = (rawBal / 1e6).toFixed(2);
+      const txCount = txRes.result ? parseInt(txRes.result, 16) : 0;
+      setWatchData({ balance, txs: [{ label: "Total transactions", value: txCount }] });
+    } catch { setWatchError("Could not fetch data. Check the address."); }
+    finally { setWatchLoading(false); }
+  }, []);
+
   const [bridgeFrom, setBridgeFrom] = useState("Ethereum_Sepolia");
   const [bridgeTo, setBridgeTo] = useState("Arc_Testnet");
   const [bridgeAmount, setBridgeAmount] = useState("");
@@ -1384,30 +1405,7 @@ export default function HomePage() {
         )}
 
 
-        {hasWallet && activeTab === "watchlist" && (() => {
-          const [watchAddress, setWatchAddress] = useState("");
-          const [watchData, setWatchData] = useState<{balance: string; txs: any[]} | null>(null);
-          const [watchLoading, setWatchLoading] = useState(false);
-          const [watchError, setWatchError] = useState<string | null>(null);
-          const [savedAddresses, setSavedAddresses] = useState<{address: string; label: string}[]>(() => {
-            try { return JSON.parse(localStorage.getItem("watchlist") || "[]"); } catch { return []; }
-          });
-
-          const lookupAddress = async (addr: string) => {
-            if (!addr || addr.length < 10) return;
-            setWatchLoading(true); setWatchError(null); setWatchData(null);
-            try {
-              const [balRes, txRes] = await Promise.all([
-                fetch("/api/rpc", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({jsonrpc:"2.0",method:"eth_call",params:[{to:"0x3600000000000000000000000000000000000000",data:"0x70a08231000000000000000000000000"+addr.slice(2).padStart(64,"0")},"latest"],id:1}) }).then(r=>r.json()),
-                fetch("/api/rpc", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({jsonrpc:"2.0",method:"eth_getTransactionCount",params:[addr,"latest"],id:2}) }).then(r=>r.json()),
-              ]);
-              const rawBal = balRes.result ? parseInt(balRes.result, 16) : 0;
-              const balance = (rawBal / 1e6).toFixed(2);
-              const txCount = txRes.result ? parseInt(txRes.result, 16) : 0;
-              setWatchData({ balance, txs: [{ label: "Total transactions", value: txCount }] });
-            } catch { setWatchError("Could not fetch data. Check the address."); }
-            finally { setWatchLoading(false); }
-          };
+        {hasWallet && activeTab === "watchlist" && (
 
           return (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
