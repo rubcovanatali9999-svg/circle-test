@@ -58,27 +58,12 @@ export default function HomePage() {
   const [stakeLock, setStakeLock] = useState<LockType>(LockType.FLEXIBLE);
   const [positions, setPositions] = useState<Awaited<ReturnType<typeof staking.loadPositions>>>([]);
   const [positionsLoading, setPositionsLoading] = useState(false);
-  const [watchAddress, setWatchAddress] = useState("");
-  const [watchData, setWatchData] = useState<{balance: string; txs: any[]} | null>(null);
+  const [watchAddr, setWatchAddr] = useState("");
+  const [watchBal, setWatchBal] = useState<string|null>(null);
+  const [watchTxCount, setWatchTxCount] = useState<number|null>(null);
   const [watchLoading, setWatchLoading] = useState(false);
-  const [watchError, setWatchError] = useState<string | null>(null);
-  const [savedAddresses, setSavedAddresses] = useState<{address: string; label: string}[]>([]);
-  const lookupAddress = useCallback(async (addr: string) => {
-    if (!addr || addr.length < 10) return;
-    setWatchLoading(true); setWatchError(null); setWatchData(null);
-    try {
-      const [balRes, txRes] = await Promise.all([
-        fetch("/api/rpc", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({jsonrpc:"2.0",method:"eth_call",params:[{to:"0x3600000000000000000000000000000000000000",data:"0x70a08231000000000000000000000000"+addr.slice(2).padStart(64,"0")},"latest"],id:1}) }).then(r=>r.json()),
-        fetch("/api/rpc", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({jsonrpc:"2.0",method:"eth_getTransactionCount",params:[addr,"latest"],id:2}) }).then(r=>r.json()),
-      ]);
-      const rawBal = balRes.result ? parseInt(balRes.result, 16) : 0;
-      const balance = (rawBal / 1e6).toFixed(2);
-      const txCount = txRes.result ? parseInt(txRes.result, 16) : 0;
-      setWatchData({ balance, txs: [{ label: "Total transactions", value: txCount }] });
-    } catch { setWatchError("Could not fetch data. Check the address."); }
-    finally { setWatchLoading(false); }
-  }, []);
-
+  const [watchErr, setWatchErr] = useState<string|null>(null);
+  const [watchSaved, setWatchSaved] = useState<{address:string;label:string}[]>([]);
   const [bridgeFrom, setBridgeFrom] = useState("Ethereum_Sepolia");
   const [bridgeTo, setBridgeTo] = useState("Arc_Testnet");
   const [bridgeAmount, setBridgeAmount] = useState("");
@@ -509,8 +494,8 @@ export default function HomePage() {
     { id: "ai", label: "AI Assistant", icon: "ti-robot" },
     { id: "learn", label: "Learn", icon: "ti-book" },
     { id: "history", label: "History", icon: "ti-list" },
-    { id: "watchlist", label: "Watch List", icon: "ti-eye" },
     { id: "about", label: "About", icon: "ti-info-circle" },
+    { id: "watchlist", label: "Watch List", icon: "ti-eye" },
   ] as const;
 
   const visibleNav = nav;
@@ -1112,8 +1097,8 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-        )}
-        )}
+          );
+        })()}
 
         {hasWallet && activeTab === "ai" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 600 }}>
@@ -1289,8 +1274,8 @@ export default function HomePage() {
                 )}
               </div>
             </div>
-          </div>
-        )})()}
+          );
+        })()}
 
         {hasWallet && activeTab === "learn" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1404,69 +1389,70 @@ export default function HomePage() {
           </div>
         )}
 
-
         {hasWallet && activeTab === "watchlist" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e3ed", padding: 20 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: "#1b1464", marginBottom: 16 }}>Watch any address</div>
-                <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                  <input value={watchAddress} onChange={e => setWatchAddress(e.target.value)} placeholder="0x... address" style={{ ...S.input, flex: 1, fontFamily: "monospace", fontSize: 13 }} />
-                  <button onClick={() => lookupAddress(watchAddress)} disabled={watchLoading} style={{ ...S.sendBtn, width: "auto", padding: "11px 20px", opacity: watchLoading ? .5 : 1 }}>
-                    {watchLoading ? "Loading..." : "Look up"}
-                  </button>
-                </div>
-                <button onClick={() => {
-                  if (!watchAddress || watchAddress.length < 10) return;
-                  const label = prompt("Label for this address (optional):") || watchAddress.slice(0,8)+"...";
-                  const updated = [...savedAddresses, { address: watchAddress, label }];
-                  setSavedAddresses(updated);
-                  localStorage.setItem("watchlist", JSON.stringify(updated));
-                }} style={{ fontSize: 12, fontWeight: 700, color: "#1b1464", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
-                  + Save to watchlist
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={S.card}>
+              <div style={S.cardTitle}>Watch any address</div>
+              <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                <input value={watchAddr} onChange={e => setWatchAddr(e.target.value)} placeholder="0x... address" style={{ ...S.input, flex: 1, fontFamily: "monospace", fontSize: 13 }} />
+                <button onClick={async () => {
+                  if (!watchAddr || watchAddr.length < 10) return;
+                  setWatchLoading(true); setWatchErr(null); setWatchBal(null); setWatchTxCount(null);
+                  try {
+                    const [balRes, txRes] = await Promise.all([
+                      fetch("/api/rpc", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({jsonrpc:"2.0",method:"eth_call",params:[{to:"0x3600000000000000000000000000000000000000",data:"0x70a08231000000000000000000000000"+watchAddr.slice(2).padStart(64,"0")},"latest"],id:1}) }).then(r=>r.json()),
+                      fetch("/api/rpc", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({jsonrpc:"2.0",method:"eth_getTransactionCount",params:[watchAddr,"latest"],id:2}) }).then(r=>r.json()),
+                    ]);
+                    setWatchBal(balRes.result ? (parseInt(balRes.result,16)/1e6).toFixed(2) : "0");
+                    setWatchTxCount(txRes.result ? parseInt(txRes.result,16) : 0);
+                  } catch { setWatchErr("Could not fetch. Check the address."); }
+                  finally { setWatchLoading(false); }
+                }} disabled={watchLoading} style={{ ...S.sendBtn, width: "auto", padding: "11px 20px", opacity: watchLoading ? .5 : 1 }}>
+                  {watchLoading ? "Loading..." : "Look up"}
                 </button>
               </div>
-
-              {watchError && <div style={{ fontSize: 13, padding: "12px 16px", borderRadius: 10, background: "#fce8e8", color: "#c62828", fontWeight: 600 }}>{watchError}</div>}
-
-              {watchData && (
-                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e3ed", padding: 20 }}>
-                  <div style={{ fontSize: 12, color: "#888", fontFamily: "monospace", marginBottom: 12, wordBreak: "break-all" }}>{watchAddress}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <div style={{ background: "#f8f7fc", borderRadius: 12, border: "1px solid #e5e3ed", padding: 16 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>USDC Balance</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#1b1464" }}>{watchData.balance} USDC</div>
-                    </div>
-                    <div style={{ background: "#f8f7fc", borderRadius: 12, border: "1px solid #e5e3ed", padding: 16 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>Transactions</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#1b1464" }}>{watchData.txs[0]?.value}</div>
-                    </div>
+              <button onClick={() => {
+                if (!watchAddr || watchAddr.length < 10) return;
+                const label = watchAddr.slice(0,8)+"..."+watchAddr.slice(-4);
+                const updated = [...watchSaved, { address: watchAddr, label }];
+                setWatchSaved(updated);
+                localStorage.setItem("watchlist_saved", JSON.stringify(updated));
+              }} style={{ fontSize: 12, fontWeight: 700, color: "#1b1464", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>+ Save address</button>
+              {watchErr && <div style={{ fontSize: 13, padding: "10px 14px", borderRadius: 10, background: "#fce8e8", color: "#c62828", fontWeight: 600, marginTop: 8 }}>{watchErr}</div>}
+              {watchBal !== null && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+                  <div style={S.card}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>USDC Balance</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "#1b1464" }}>{watchBal} USDC</div>
                   </div>
-                  <a href={"https://explorer.testnet.arc.io/address/"+watchAddress} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 14, fontSize: 12, fontWeight: 700, color: "#1b1464", textDecoration: "none" }}>
-                    View on Arc Explorer →
-                  </a>
-                </div>
-              )}
-
-              {savedAddresses.length > 0 && (
-                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e3ed", padding: 20 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#1b1464", marginBottom: 14 }}>Saved addresses</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {savedAddresses.map((item, i) => (
-                      <div key={i} style={{ background: "#f8f7fc", borderRadius: 10, border: "1px solid #e5e3ed", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: "#1b1464" }}>{item.label}</div>
-                          <div style={{ fontSize: 11, color: "#888", fontFamily: "monospace", marginTop: 2 }}>{item.address.slice(0,10)}...{item.address.slice(-6)}</div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={() => { setWatchAddress(item.address); lookupAddress(item.address); }} style={{ background: "#1b1464", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>View</button>
-                          <button onClick={() => { const updated = savedAddresses.filter((_,j)=>j!==i); setSavedAddresses(updated); localStorage.setItem("watchlist", JSON.stringify(updated)); }} style={{ background: "transparent", border: "1px solid #e5e3ed", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, color: "#888", cursor: "pointer" }}>Remove</button>
-                        </div>
-                      </div>
-                    ))}
+                  <div style={S.card}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", textTransform: "uppercase" as const, letterSpacing: ".06em", marginBottom: 6 }}>Transactions</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "#1b1464" }}>{watchTxCount}</div>
                   </div>
+                  <a href={"https://explorer.testnet.arc.io/address/"+watchAddr} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "#1b1464", gridColumn: "span 2" }}>View on Arc Explorer →</a>
                 </div>
               )}
             </div>
+            {watchSaved.length > 0 && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>Saved addresses</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {watchSaved.map((item, i) => (
+                    <div key={i} style={{ background: "#f8f7fc", borderRadius: 10, border: "1px solid #e5e3ed", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#1b1464" }}>{item.label}</div>
+                        <div style={{ fontSize: 11, color: "#888", fontFamily: "monospace", marginTop: 2 }}>{item.address.slice(0,10)}...{item.address.slice(-6)}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => setWatchAddr(item.address)} style={{ background: "#1b1464", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>View</button>
+                        <button onClick={() => { const u = watchSaved.filter((_,j)=>j!==i); setWatchSaved(u); localStorage.setItem("watchlist_saved",JSON.stringify(u)); }} style={{ background: "transparent", border: "1px solid #e5e3ed", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, color: "#888", cursor: "pointer" }}>Remove</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {hasWallet && activeTab === "history" && (
