@@ -6,7 +6,7 @@ import { parseUnits, formatUnits, maxUint256, encodeFunctionData } from "viem";
 import { arcTestnet } from "./wagmi";
 import { ARC_USDC_ADDRESS, ARC_USDC_DECIMALS } from "./useEvmWallet";
 
-export const STAKING_ADDRESS = "0x5161d45d48aa0e5e75445163c35fe6bb3cf3b523" as const;
+export const STAKING_ADDRESS = "0xd76e91cbbf751052ee2b11b5a1d0880e4659621c" as const;
 export const MIN_STAKE_USDC = 1;
 export enum LockType { FLEXIBLE = 0, DAYS_7 = 1, DAYS_30 = 2, DAYS_90 = 3 }
 export const LOCK_LABELS: Record<LockType, string> = { [LockType.FLEXIBLE]: "Flexible", [LockType.DAYS_7]: "7 Days", [LockType.DAYS_30]: "30 Days", [LockType.DAYS_90]: "90 Days" };
