@@ -1406,8 +1406,6 @@ export default function HomePage() {
 
 
         {hasWallet && activeTab === "watchlist" && (
-
-          return (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e3ed", padding: 20 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: "#1b1464", marginBottom: 16 }}>Watch any address</div>
