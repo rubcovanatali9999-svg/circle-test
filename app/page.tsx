@@ -1113,6 +1113,7 @@ export default function HomePage() {
               </div>
             </div>
         )}
+        )}
 
         {hasWallet && activeTab === "ai" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 600 }}>
