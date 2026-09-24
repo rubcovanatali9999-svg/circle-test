@@ -838,8 +838,13 @@ export default function HomePage() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <input value={sendAddress} onChange={e => setSendAddress(e.target.value)} placeholder="Recipient 0x..." style={{ ...S.input, fontSize: 13, padding: "10px 12px" }} />
-                  <input value={sendAmount} onChange={e => setSendAmount(e.target.value)} type="number" placeholder="Amount (USDC)" style={{ ...S.input, fontSize: 13, padding: "10px 12px" }} />
-                  <button disabled={sending || !sendAddress || !sendAmount} onClick={handleSendUsdc} style={{ ...S.sendBtn, padding: 10, fontSize: 13, opacity: sending || !sendAddress || !sendAmount ? 0.5 : 1, cursor: sending || !sendAddress || !sendAmount ? "not-allowed" : "pointer" }}>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                    {[25,50,75,100].map(pct => (
+                      <button key={pct} onClick={() => { const max = parseFloat(usdcBalance||"0"); setSendAmount((max*pct/100).toFixed(2)); }} style={{ flex:1, background: "#ffffff10", border: "1px solid #ffffff20", borderRadius: 6, padding: "4px 0", fontSize: 11, fontWeight: 700, color: C.tx, cursor: "pointer" }}>{pct===100?"Max":pct+"%"}</button>
+                    ))}
+                  </div>
+                  <input value={sendAmount} onChange={e => { const v = parseFloat(e.target.value); const max = parseFloat(usdcBalance||"0"); setSendAmount(v > max ? max.toFixed(2) : e.target.value); }} type="number" placeholder="Amount (USDC)" max={parseFloat(usdcBalance||"0")} style={{ ...S.input, fontSize: 13, padding: "10px 12px" }} />
+                  <button disabled={sending || !sendAddress || !sendAmount || parseFloat(sendAmount) > parseFloat(usdcBalance||"0") || parseFloat(sendAmount) <= 0} onClick={handleSendUsdc} style={{ ...S.sendBtn, padding: 10, fontSize: 13, opacity: sending || !sendAddress || !sendAmount || parseFloat(sendAmount) > parseFloat(usdcBalance||"0") ? 0.5 : 1, cursor: sending || !sendAddress || !sendAmount || parseFloat(sendAmount) > parseFloat(usdcBalance||"0") ? "not-allowed" : "pointer" }}>
                     {sending ? (walletMode === "evm" ? "Confirm in MetaMask..." : "Confirming...") : "Send USDC"}
                   </button>
                   {sendMsg && <div style={{ fontSize: 12, padding: "9px 12px", borderRadius: 9, background: sendMsg.type === "ok" ? "#e8f5e9" : "#fce8e8", color: sendMsg.type === "ok" ? "#2e7d32" : "#c62828", fontWeight: 600 }}>{sendMsg.text}</div>}
@@ -903,11 +908,11 @@ export default function HomePage() {
 
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: "#888", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".04em" }}>Amount (USDC)</div>
-                    <input value={bridgeAmount} onChange={(e) => setBridgeAmount(e.target.value)} type="number" placeholder="0.00" style={S.input} />
+                    <input value={bridgeAmount} onChange={(e) => { const v = parseFloat(e.target.value); const max = parseFloat(usdcBalance||"0"); setBridgeAmount(v > max ? max.toFixed(2) : e.target.value); }} type="number" placeholder="0.00" max={parseFloat(usdcBalance||"0")} style={S.input} />
                   </div>
 
                   <button
-                    disabled={bridgeKit.status === "running" || !bridgeAmount || bridgeFrom === bridgeTo}
+                    disabled={bridgeKit.status === "running" || !bridgeAmount || bridgeFrom === bridgeTo || parseFloat(bridgeAmount) > parseFloat(usdcBalance||"0")}
                     onClick={() => { bridgeKit.reset(); bridgeKit.runBridge(bridgeFrom, bridgeTo, bridgeAmount).catch(() => {}); }}
                     style={{ ...S.sendBtn, opacity: bridgeKit.status === "running" || !bridgeAmount || bridgeFrom === bridgeTo ? 0.5 : 1, cursor: bridgeKit.status === "running" || !bridgeAmount || bridgeFrom === bridgeTo ? "not-allowed" : "pointer" }}
                   >
