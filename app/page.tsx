@@ -1338,7 +1338,7 @@ export default function HomePage() {
                   <div style={{ fontSize: 13, opacity: .6, fontWeight: 500 }}>Arc Testnet Wallet</div>
                 </div>
               </div>
-              <div style={{ fontSize: 14, lineHeight: 1.7, opacity: .8, fontWeight: 500 }}>A Web3 wallet on Arc Testnet with two ways in: sign in with Google for a Circle-managed wallet with no seed phrase, or connect MetaMask for full self-custody — same balance, send, and history either way. Bridge USDC across chains via Circle's CCTP, and mint real on-chain NFT badges for milestones on your own wallet.</div>
+              <div style={{ fontSize: 14, lineHeight: 1.7, opacity: .8, fontWeight: 500 }}>A full-featured Web3 wallet on Arc Testnet. Sign in with Google (Circle SDK) or MetaMask. Send USDC, bridge across chains via CCTP, stake USDC on-chain with real lock/unlock mechanics, monitor any wallet with Watch List, earn NFT badges, and get real-time transaction sync via Circle webhooks.</div>
               <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
                 <a href="https://hashcrewtest.vercel.app" target="_blank" rel="noreferrer" style={{ background: "#fff", color: "#1b1464", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>🌐 Live Demo</a>
                 <a href="https://github.com/rubcovanatali9999-svg/circle-test" target="_blank" rel="noreferrer" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>GitHub →</a>
@@ -1353,10 +1353,12 @@ export default function HomePage() {
                   { icon: "💸", title: "Send USDC", desc: "Real on-chain transactions on Arc" },
                   { icon: "🌉", title: "CCTP Bridge", desc: "Move USDC across chains via Circle Bridge Kit" },
                   { icon: "🏆", title: "On-chain Badges", desc: "Real NFTs minted from your own wallet" },
-                  { icon: "🌱", title: "Treasury & Garden", desc: "Automation rules + gamified staking" },
+                  { icon: "🏦", title: "Real On-chain Staking", desc: "Lock USDC for 7/30/90 days, earn points on-chain" },
                   { icon: "📊", title: "Analytics", desc: "Balance history with charts" },
                   { icon: "🤖", title: "AI Assistant", desc: "Natural-language send, powered by Claude" },
                   { icon: "📚", title: "Learn", desc: "Arc House community content" },
+                  { icon: "👁", title: "Watch List", desc: "Monitor any wallet address on Arc" },
+                  { icon: "🔔", title: "Circle Webhooks", desc: "Real-time transaction sync via Circle" },
                 ].map((f, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px", background: "#f8f7fc", borderRadius: 10, border: "1px solid #e5e3ed" }}>
                     <div style={{ fontSize: 20 }}>{f.icon}</div>
@@ -1382,7 +1384,8 @@ export default function HomePage() {
             </div>
             <div style={S.card}>
               <div style={S.cardTitle}>On-chain contracts</div>
-              <div style={{ fontSize: 13, color: "#888", lineHeight: 1.7, fontWeight: 500, marginBottom: 10 }}>HashCrew Badges — a fully on-chain ERC-721 (artwork and metadata generated in the contract itself, no external hosting).</div>
+              <div style={{ fontSize: 13, color: "#888", lineHeight: 1.7, fontWeight: 500, marginBottom: 10 }}>HashCrew Badges — a fully on-chain ERC-721 (artwork and metadata generated in the contract itself, no external hosting).
+HashCrew Staking — real USDC staking with on-chain lock/unlock, 67/67 security tests passed.</div>
               <a href="https://testnet.arcscan.app/address/0xb3d15388Ce100Ae18937CFFfdADcec7D6b523800" target="_blank" rel="noreferrer" style={{ fontSize: 12, fontFamily: "monospace", color: "#1b1464", fontWeight: 700, textDecoration: "none", background: "#f8f7fc", border: "1px solid #e5e3ed", borderRadius: 8, padding: "8px 12px", display: "inline-block" }}>0xb3d1...3800 ↗ View on ArcScan</a>
             </div>
             <div style={{ ...S.card, textAlign: "center" as const }}>
