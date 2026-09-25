@@ -47,7 +47,7 @@ export default function HomePage() {
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [analyticsPeriod, setAnalyticsPeriod] = useState<"7D"|"1M"|"ALL">("7D");
-  const [eurcBalance, setEurcBalance] = useState<string>("20.00");
+  const [eurcBalance, setEurcBalance] = useState<string>("0.00");
   const evm = useEvmWallet();
   const bridgeKit = useBridgeKit();
   const [hasBridgedPersisted, setHasBridgedPersisted] = useState(false);
@@ -813,8 +813,7 @@ export default function HomePage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
                 <div style={S.card}>
                   <div style={{ width: 38, height: 38, borderRadius: 11, background: C.badgeGrad, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-coin" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
-                  <div style={S.micro}>// EURC</div>
-                  <div style={{ fontSize: 26, fontWeight: 700, color: C.tx, marginTop: 6, letterSpacing: "-.5px" }}>{parseFloat(eurcBalance).toFixed(2)}</div>
+
                 </div>
                 <div style={S.card}>
                   <div style={{ width: 38, height: 38, borderRadius: 11, background: C.badgeGrad, color: C.ac, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><i className="ti ti-topology-star" aria-hidden="true" style={{ fontSize: 19 }}></i></div>
@@ -963,7 +962,6 @@ export default function HomePage() {
             <div style={{ background: "#1b1464", borderRadius: 16, padding: 24, color: "#fff" }}>
               <div style={{ fontSize: 11, fontWeight: 700, opacity: .6, textTransform: "uppercase" as const, letterSpacing: ".08em", marginBottom: 8 }}>Treasury Balance</div>
               <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1px", marginBottom: 4 }}>{parseFloat(usdcBalance || "0").toFixed(2)} USDC</div>
-              <div style={{ fontSize: 13, opacity: .6 }}>+ {eurcBalance} EURC</div>
               <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
                 <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 600 }}>
                   {rules.filter(r => r.active).length} active rules
